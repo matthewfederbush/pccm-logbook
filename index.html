@@ -1120,88 +1120,202 @@ function clearVoice() {
 
 // Smart field-filling from transcript
 function applyTranscript() {
-  const text = fullTranscript.trim().toLowerCase();
+  const raw = fullTranscript.trim();
+  const text = raw.toLowerCase();
   if (!text) { showToast('Nothing to apply'); return; }
 
-  // ── Procedures: match against known procedure names ──
-  const allProcs = Array.from(document.querySelectorAll('.proc-card'));
+  // ── ATTENDING — rich alias map (last name + phonetic variants) ──
+  const ATTENDING_ALIASES = {
+    'Agrawal, Abhinav':      ['agrawal','abhinav'],
+    'Basist, Madeleine':     ['basist','madeleine','madeline'],
+    'Chang, Anna':           ['chang','anna chang'],
+    'Davidov, Iosif':        ['davidov','iosif','joseph davidov'],
+    'Derfel, Juliana':       ['derfel','juliana'],
+    'Dhar, Sean':            ['dhar','sean dhar'],
+    'Duenas, Sean':          ['duenas','dueñas','sean duenas'],
+    'Durst, Matthew':        ['durst','matthew durst'],
+    'Emeagwali, Nkiruka':    ['emeagwali','nkiruka','emeagually','emegwali'],
+    'Fryman, Craig':         ['fryman','craig fryman'],
+    'Gottesman, Eric':       ['gottesman','eric gottesman'],
+    'Habibullah, Junaid':    ['habibullah','junaid','habib'],
+    'Hahn, Stella':          ['hahn','stella hahn'],
+    'Hamad, Mohammed':       ['hamad','mohammed hamad','mohamed'],
+    'Hasan, Zubair':         ['hasan','zubair','hassaan','zubayr'],
+    'Hessel, Justina':       ['hessel','justina'],
+    'Hilewitz, Ayelet':      ['hilewitz','ayelet','hilewits'],
+    'Iakovou, Annamaria':    ['iakovou','annamaria','iacovou','yakovou'],
+    'Khanijo, Sameer':       ['khanijo','sameer','kanijo'],
+    'Kim, Adam':             ['kim','adam kim'],
+    'Korotun, Maksim':       ['korotun','maksim','koroton'],
+    'Lisker, Gita':          ['lisker','gita'],
+    'MacDonald, Zachary':    ['macdonald','zachary','mcdonald'],
+    'Makaryus, Mina':        ['makaryus','mina','makarius'],
+    'Mayo, Paul':            ['mayo','paul mayo'],
+    'Melamud, Aleksandr':    ['melamud','aleksandr','alexander melamud'],
+    'Millwala, Salman':      ['millwala','salman','milwala'],
+    'Mohanka, Manish':       ['mohanka','manish'],
+    'Moonian, Andrew':       ['moonian','andrew moonian'],
+    'Morim, Olga':           ['morim','olga'],
+    'Murn, Michael':         ['murn','michael murn'],
+    'Narasimhan, Mangala':   ['narasimhan','mangala','narasimhun'],
+    'Palmares, Francine':    ['palmares','francine'],
+    'Pierce, Matthew':       ['pierce','matthew pierce'],
+    'Prabhakar, Laxminarayan':['prabhakar','laxminarayan','prabhaker','laxmi'],
+    'Quintero, Luis':        ['quintero','luis quintero'],
+    'Ravishankar, Shreyas':  ['ravishankar','shreyas','ravishanker'],
+    'Sfakianos, Maria':      ['sfakianos','maria sfakianos','sfakianas'],
+    'Shah, Dimple':          ['shah','dimple','dimple shah'],
+    'Shaikh, Aman':          ['shaikh','aman','sheikh aman','sheikh'],
+    'Singas, Effie':         ['singas','effie'],
+    'Smith, Kira':           ['smith','kira smith'],
+    'Tafreshi, Mehran':      ['tafreshi','mehran','tafrishi'],
+    'Talwar, Arunabh':       ['talwar','arunabh','talwaar'],
+    'Tomanelli, Toni Ann':   ['tomanelli','toni ann','toni','tomaneli'],
+    'Walsh, Danielle':       ['walsh','danielle walsh'],
+    'Wang, Janice':          ['wang','janice wang'],
+    'Weinstein, Tatiana':    ['weinstein','tatiana'],
+    'Wong, Kelvin':          ['wong','kelvin'],
+    'Zaidi, Gulrukh':        ['zaidi','gulrukh','zaydi'],
+  };
+  const attSelect = document.getElementById('encAttending');
+  let attMatched = false;
+  for (const [fullName, aliases] of Object.entries(ATTENDING_ALIASES)) {
+    if (aliases.some(a => text.includes(a))) {
+      attSelect.value = fullName;
+      attMatched = true;
+      break;
+    }
+  }
+
+  // ── PROCEDURES — exact keyword map (avoids false positives) ──
+  const PROC_KEYWORDS = {
+    'Endotracheal intubation':        ['endotracheal','et tube','et intubation','oral intubation'],
+    'Bronchoscopic intubation':       ['bronchoscopic intubation','scope intubation'],
+    'Percutaneous tracheostomy':      ['tracheostomy','trach','pdt','percutaneous trach'],
+    'Central venous catheter':        ['central line','central venous','cvc','central catheter'],
+    'Arterial line':                  ['arterial line','a-line','art line','radial line','femoral art'],
+    'Dialysis catheter':              ['dialysis catheter','dialysis line','hd catheter','crrt catheter'],
+    'Pulmonary artery catheter':      ['pulmonary artery catheter','swan','swan-ganz','pa catheter'],
+    'Transvenous pacemaker insertion':['transvenous pacemaker','temporary pacemaker','tvp','transvenous pace'],
+    'Intraosseous (IO)':              ['intraosseous','io line','io access'],
+    'Thoracentesis':                  ['thoracentesis','thoracenteses','pleural tap','pleural drainage'],
+    'Pigtail chest tube':             ['pigtail','pig tail','small bore chest tube','pigtail tube'],
+    'Surgical chest tube':            ['surgical chest tube','large bore chest tube','chest tube','thoracostomy'],
+    'Tunneled pleural catheter':      ['tunneled pleural','pleurx','tpc','tunneled catheter'],
+    'Flexible bronchoscopy':          ['bronchoscopy','flexible bronch','bronch','fob'],
+    'BAL':                            ['bal','bronchoalveolar lavage','lavage'],
+    'Endobronchial biopsy':           ['endobronchial biopsy','eb biopsy','endobronchial'],
+    'Transbronchial biopsy':          ['transbronchial','tbx','tbb','transbronchial biopsy'],
+    'EBUS-TBNA':                      ['ebus','tbna','endobronchial ultrasound'],
+    'Paracentesis':                   ['paracentesis','para','abdominal tap'],
+    'Lumbar puncture':                ['lumbar puncture','lp','spinal tap'],
+    'Cardioversion':                  ['cardioversion','dccv','synchronized cardioversion'],
+    'Pericardiocentesis':             ['pericardiocentesis','pericardial tap','pericardial drain'],
+    'Transesophageal echocardiogram': ['transesophageal echo','tee','transesophageal echocardiogram'],
+    'Nasogastric tube':               ['nasogastric','ng tube','ngt','dobhoff'],
+  };
   let matched = [];
-  allProcs.forEach(card => {
-    const name = card.dataset.proc?.toLowerCase() || '';
-    const words = name.split(/\s+/);
-    const hit = words.some(w => w.length > 3 && text.includes(w)) ||
-                text.includes(name);
-    if (hit) {
-      matched.push(card.dataset.proc);
-      card.click();
+  for (const [proc, keywords] of Object.entries(PROC_KEYWORDS)) {
+    if (keywords.some(kw => text.includes(kw))) {
+      matched.push(proc);
+    }
+  }
+  // Apply proc selections
+  document.querySelectorAll('.proc-card').forEach(card => {
+    if (matched.includes(card.dataset.proc)) {
+      if (!selected.has(card.dataset.proc)) card.click();
     }
   });
 
-  // ── Attending: fuzzy match last name ──
-  const attendingSelect = document.getElementById('encAttending');
-  const options = Array.from(attendingSelect.options);
-  options.forEach(opt => {
-    const lastName = opt.value.split(' ').pop().toLowerCase();
-    if (lastName.length > 3 && text.includes(lastName)) {
-      attendingSelect.value = opt.value;
-    }
-  });
-
-  // ── Location keywords ──
+  // ── LOCATION ──
   const locSelect = document.getElementById('encLocation');
-  if (text.includes('icu') || text.includes('bedside')) locSelect.value = 'Bedside/ICU';
-  else if (text.includes('bronchoscopy suite') || text.includes('bronch suite')) locSelect.value = 'Bronchoscopy suite';
-  else if (text.includes('procedure room') || text.includes('micu procedure')) locSelect.value = 'MICU procedure room';
-  else if (text.includes(' or ') || text.includes('operating room')) locSelect.value = 'OR';
-  else if (text.includes('floor') || text.includes('stepdown')) locSelect.value = 'Stepdown/floor';
-  else if (text.includes(' ed ') || text.includes('emergency')) locSelect.value = 'ED';
+  if      (text.includes('bronchoscopy suite') || text.includes('bronch suite')) locSelect.value = 'Bronchoscopy suite';
+  else if (text.includes('procedure room') || text.includes('micu procedure'))   locSelect.value = 'MICU procedure room';
+  else if (text.includes(' or ') || text.includes('operating room'))             locSelect.value = 'OR';
+  else if (text.includes('stepdown') || text.includes('step down') || text.includes('floor')) locSelect.value = 'Stepdown/floor';
+  else if (text.includes(' ed ') || text.includes('emergency department'))       locSelect.value = 'ED';
+  else if (text.includes('icu') || text.includes('bedside') || text.includes('intensive care')) locSelect.value = 'Bedside/ICU';
 
-  // ── Role keywords ──
+  // ── ROLE ──
   const roleSelect = document.getElementById('encRole');
   if (roleSelect) {
-    if (text.includes('independent') || text.includes('independently')) roleSelect.value = 'Performed independently';
+    if      (text.includes('independent'))                    roleSelect.value = 'Performed independently';
     else if (text.includes('supervision') || text.includes('supervised')) roleSelect.value = 'Performed with supervision';
-    else if (text.includes('assist')) roleSelect.value = 'Assisted';
-    else if (text.includes('observ')) roleSelect.value = 'Observed';
+    else if (text.match(/\bassist/))                          roleSelect.value = 'Assisted';
+    else if (text.match(/\bobserv/))                          roleSelect.value = 'Observed';
   }
 
-  // ── Outcome keywords ──
+  // ── OUTCOME ──
   const outcomeSelect = document.getElementById('encOutcome');
   if (outcomeSelect) {
-    if (text.includes('unsuccessful') || text.includes('failed') || text.includes('failure')) outcomeSelect.value = 'Unsuccessful';
-    else if (text.includes('partial')) outcomeSelect.value = 'Partially successful';
-    else if (text.includes('abandon')) outcomeSelect.value = 'Abandoned';
-    else if (text.includes('success')) outcomeSelect.value = 'Successful';
+    if      (text.includes('unsuccessful') || text.includes('failed') || text.includes('failure')) outcomeSelect.value = 'Unsuccessful';
+    else if (text.includes('partial'))                        outcomeSelect.value = 'Partially successful';
+    else if (text.includes('abandon'))                        outcomeSelect.value = 'Abandoned';
+    else if (text.includes('success') || text.includes('successful')) outcomeSelect.value = 'Successful';
   }
 
-  // ── Indication: grab text after "indication" or "for" ──
-  const indicationField = document.getElementById('encIndication');
-  if (indicationField) {
-    const indMatch = text.match(/(?:indication(?:s)?(?:\s+(?:was|were|is))?\s+)([\w\s,]+?)(?:\.|,|complication|note|$)/);
-    if (indMatch) indicationField.value = indMatch[1].trim();
+  // ── INITIALS ──
+  const initialsField = document.getElementById('encInitials');
+  if (initialsField) {
+    const initMatch = raw.match(/\binitials?\s+(?:are\s+|is\s+)?([A-Z]\.?[A-Z]\.?)/i)
+                   || raw.match(/\bpatient\s+([A-Z]\.[A-Z]\.)/i);
+    if (initMatch) initialsField.value = initMatch[1].replace(/\s/g,'');
   }
 
-  // ── Complications ──
+  // ── DATE ──
+  const dateField = document.getElementById('encDate');
+  if (dateField) {
+    const today = new Date();
+    if (text.includes('yesterday')) {
+      const y = new Date(today); y.setDate(y.getDate()-1);
+      dateField.value = y.toISOString().split('T')[0];
+    } else if (text.includes('today')) {
+      dateField.value = today.toISOString().split('T')[0];
+    } else {
+      // Try to parse explicit date e.g. "May 15" or "5/15"
+      const mNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+      mNames.forEach((m, mi) => {
+        const dateMatch = text.match(new RegExp(m + '\\s+(\\d{1,2})'));
+        if (dateMatch) {
+          const d = new Date(today.getFullYear(), mi, parseInt(dateMatch[1]));
+          dateField.value = d.toISOString().split('T')[0];
+        }
+      });
+      const slashDate = text.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+      if (slashDate) {
+        const d = new Date(today.getFullYear(), parseInt(slashDate[1])-1, parseInt(slashDate[2]));
+        dateField.value = d.toISOString().split('T')[0];
+      }
+    }
+  }
+
+  // ── INDICATION ──
+  const indField = document.getElementById('encIndication');
+  if (indField) {
+    const indMatch = raw.match(/indication(?:s)?\s+(?:was|were|is|:)?\s*([^,.]+)/i)
+                  || raw.match(/(?:for|indicated for)\s+([^,.]+)/i);
+    if (indMatch) indField.value = indMatch[1].trim();
+  }
+
+  // ── COMPLICATIONS ──
   const compField = document.getElementById('encComplications');
   if (compField) {
-    if (text.includes('no complication') || text.includes('uncomplicated')) {
+    if (text.includes('no complication') || text.includes('uncomplicated') || text.includes('without complication')) {
       compField.value = 'None';
     } else {
-      const compMatch = text.match(/complication(?:s)?(?:\s+(?:included?|was|were))?\s+([\w\s,]+?)(?:\.|$)/);
+      const compMatch = raw.match(/complication(?:s)?\s+(?:included?|was|were|:)?\s*([^,.]+)/i);
       if (compMatch) compField.value = compMatch[1].trim();
     }
   }
 
+  // ── DONE ──
   document.getElementById('voicePanel').classList.remove('show');
   stopListening();
-
+  renderProcedures();
+  renderSelected();
   const summary = matched.length
     ? matched.slice(0,2).join(', ') + (matched.length > 2 ? ` +${matched.length-2}` : '')
     : 'no procedures matched';
-  showToast(`Applied: ${summary} — review & save`);
+  showToast('Applied: ' + summary + ' — review & save');
   window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-</script>
-</body>
-</html>
+}>
