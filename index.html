@@ -653,7 +653,7 @@ function openEditModal(id){
   editingId=id;
   document.getElementById('editDate').value=enc.date||'';
   document.getElementById('editInitials').value=enc.initials||'';
-  document.getElementById('editMRN').value=enc.mrn||'';
+  document.getElementById('editMRN').value='';
   document.getElementById('editAttending').value=enc.attending||'';
   document.getElementById('editLocation').value=enc.location||'Bedside/ICU';
   document.getElementById('editRole').value=enc.role||'Primary operator';
@@ -853,13 +853,13 @@ async function syncEncounterToSheets(enc) {
 
   // 2. Ensure main sheet has headers, write rows
   const rows = enc.procedures.map(p => [
-    enc.id, enc.date, enc.initials||'', enc.mrn||'', p.name, p.category,
+    enc.id, enc.date, enc.initials||'', p.name, p.category,
     enc.attending||'', enc.location||'', enc.role||'', enc.outcome||'',
     enc.indication||'', enc.complications||'', enc.notes||'', enc.loggedAt||'', ''
   ]);
 
   await ensureSheetsHeaders(ssId, 'Log', [
-    'Encounter ID','Date','Initials','MRN','Procedure','Category',
+    'Encounter ID','Date','Initials','Procedure','Category',
     'Attending','Location','Role','Outcome','Indication','Complications','Notes','Logged At','Attending Verification'
   ]);
   await appendToSheet(ssId, 'Log', rows);
@@ -867,7 +867,7 @@ async function syncEncounterToSheets(enc) {
   // 3. Write to attending-specific tab
   if (attSheet) {
     await ensureSheetsHeaders(ssId, attSheet, [
-      'Encounter ID','Date','Initials','MRN','Procedure','Category',
+      'Encounter ID','Date','Initials','Procedure','Category',
       'Attending','Location','Role','Outcome','Indication','Complications','Notes','Logged At','Attending Verification'
     ]);
     await appendToSheet(ssId, attSheet, rows);
@@ -955,7 +955,7 @@ function repeatLastEncounter() {
 
   document.getElementById('date').value = new Date().toISOString().split('T')[0];
   document.getElementById('initials').value = enc.initials || '';
-  document.getElementById('mrn').value = '';
+  
   document.getElementById('attending').value = enc.attending || '';
   document.getElementById('location').value = enc.location || '';
   document.getElementById('role').value = enc.role || '';
