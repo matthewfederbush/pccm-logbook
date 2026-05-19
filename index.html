@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="apple-touch-icon" href="icon.png"/>
+<link rel="apple-touch-icon" href="icon.png"/>
+<meta name="apple-mobile-web-app-title" content="PCCM Logbook"/>
+<title>PCCM Logbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --bg:#f7f6f2; --surface:#ffffff; --surface2:#f9f8f5; --surface3:#f0ede8;
+  --border:rgba(40,37,29,0.13); --divider:#e4e1db;
+  --text:#28251d; --muted:#7a7974; --faint:#bab9b4;
+  --primary:#0d7c86; --primary-h:#085e66; --primary-tint:rgba(13,124,134,0.10);
+  --error:#c0392b; --success:#437a22;
+  --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-full:999px;
+  --sh:0 1px 3px rgba(0,0,0,0.07),0 2px 8px rgba(0,0,0,0.05);
+  --sh-md:0 4px 16px rgba(0,0,0,0.10),0 2px 6px rgba(0,0,0,0.06);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{height:100%;-webkit-text-size-adjust:none;}
+body{min-height:100dvh;font-family:"Inter",system-ui,sans-serif;font-size:16px;line-height:1.55;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;padding-bottom:100px;}
+input,select,textarea,button{font:inherit;color:inherit;}
+button{cursor:pointer;background:none;border:none;}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0px);}
+.topbar-inner{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 16px;gap:12px;}
+.brand{display:flex;align-items:center;gap:10px;}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;}
+.app-title{font-size:18px;font-weight:700;}
+
+/* CONTENT */
+.content{padding:20px 16px 40px;max-width:860px;margin:0 auto;width:100%;}
+.screen{display:none;}.screen.active{display:block;}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--sh);padding:20px;margin-bottom:16px;}
+.card-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:16px;}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-h) 100%);color:#fff;padding:22px 20px;border-radius:var(--r-xl);box-shadow:var(--sh-md);margin-bottom:16px;}
+.hero h1{font-size:26px;font-weight:800;margin-bottom:4px;}
+.hero p{font-size:14px;opacity:.88;}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+.metric{background:rgba(255,255,255,.15);padding:12px;border-radius:14px;text-align:center;}
+.metric-num{font-size:24px;font-weight:800;}
+.metric-label{font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:.06em;}
+
+/* FORM FIELDS */
+.field{margin-bottom:14px;}
+label{display:block;font-size:14px;font-weight:600;margin-bottom:5px;}
+.opt{font-weight:400;color:var(--muted);font-size:13px;}
+input[type="text"],input[type="date"],select,textarea{
+  width:100%;padding:11px 13px;border:1.5px solid var(--border);
+  border-radius:var(--r-md);background:var(--surface2);color:var(--text);
+  font-size:16px;min-height:48px;-webkit-appearance:none;appearance:none;
+  transition:border-color .15s;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-tint);}
+textarea{min-height:80px;resize:vertical;}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* PROC CARDS */
+.cat-block{margin-bottom:20px;}
+.cat-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;}
+.proc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.proc-card{display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--border);border-radius:var(--r-lg);background:var(--surface2);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;}
+.proc-card.active{border-color:var(--primary);background:var(--primary-tint);}
+.proc-card-check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--surface);}
+.proc-card.active .proc-card-check{background:var(--primary);border-color:var(--primary);}
+.proc-card-check svg{width:12px;height:12px;stroke:#fff;stroke-width:2.5;fill:none;opacity:0;}
+.proc-card.active .proc-card-check svg{opacity:1;}
+.proc-card-icon{font-size:22px;flex-shrink:0;}
+.proc-card-name{font-size:14px;font-weight:600;line-height:1.2;}
+
+/* SELECTED BADGES */
+.badge-wrap{display:flex;flex-wrap:wrap;gap:8px;min-height:32px;}
+.proc-badge{background:var(--primary-tint);color:var(--primary-h);border:1.5px solid rgba(13,124,134,.25);padding:6px 12px;border-radius:var(--r-full);font-size:13px;font-weight:600;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 18px;border-radius:var(--r-md);font-size:15px;font-weight:700;cursor:pointer;transition:.15s;border:1.5px solid transparent;}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:active{background:var(--primary-h);}
+.btn-ghost{background:var(--surface2);border-color:var(--border);color:var(--text);}
+.btn-full{width:100%;}
+.btn-row{display:flex;gap:10px;margin-top:16px;}
+.btn-row .btn{flex:1;}
+
+/* LOG ENTRIES */
+.log-entry{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-xl);padding:14px;margin-bottom:12px;}
+.log-entry-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.log-date{font-size:15px;font-weight:800;}
+.log-sub{font-size:13px;color:var(--muted);margin-top:2px;}
+.log-procs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.log-meta{font-size:13px;color:var(--muted);margin-top:8px;}
+.log-note{font-size:14px;margin-top:8px;line-height:1.4;}
+.log-action-btn{padding:7px 12px;border-radius:var(--r-md);border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-weight:700;white-space:nowrap;}
+.log-edit-btn{color:var(--primary);border-color:var(--primary);background:var(--primary-tint);}
+.btn-pair{display:flex;gap:8px;}
+
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;}
+.filter-tab{white-space:nowrap;padding:8px 14px;border-radius:var(--r-full);background:var(--surface2);border:1.5px solid var(--border);font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;flex-shrink:0;}
+.filter-tab.active{background:var(--primary-tint);border-color:rgba(13,124,134,.35);color:var(--primary-h);}
+
+/* STATS */
+.stat-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:10px;}
+.stat-name{font-weight:600;}
+.stat-count{font-weight:800;font-size:17px;}
+
+/* EDIT MODAL */
+.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-sheet{background:var(--surface);border-radius:var(--r-xl) var(--r-xl) 0 0;width:100%;max-width:600px;max-height:90dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s cubic-bezier(.32,.72,0,1);}
+.modal-overlay.open .modal-sheet{transform:translateY(0);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px;border-bottom:1px solid var(--divider);flex-shrink:0;}
+.modal-title{font-size:17px;font-weight:700;}
+.modal-close{width:32px;height:32px;border-radius:var(--r-full);background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);}
+.modal-body{overflow-y:auto;flex:1;padding:16px 20px;}
+.modal-footer{display:flex;gap:10px;padding:16px 20px;padding-bottom:calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--divider);flex-shrink:0;}
+.modal-footer .btn{flex:1;}
+
+/* TOAST */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;background:rgba(24,24,22,.92);color:#fff;padding:11px 18px;border-radius:var(--r-full);font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.18s;z-index:600;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+/* TABS */
+.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:200;}
+.tab-btn{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:11px;font-weight:600;padding:4px 10px;border-radius:var(--r-md);cursor:pointer;flex:1;}
+.tab-btn.active{color:var(--primary);}
+.tab-icon{font-size:22px;line-height:1;}
+
+@media(max-width:540px){
+  .row-2,.row-3{grid-template-columns:1fr;}
+  .proc-grid{grid-template-columns:1fr 1fr;}
+}
+/* AUTH */
+.auth-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--primary-tint);border:1.5px solid rgba(13,124,134,.25);border-radius:var(--r-lg);padding:12px 14px;margin-bottom:16px;}
+.auth-banner.signed-in{background:#f0faf4;border-color:rgba(67,122,34,.3);}
+.auth-info{font-size:13px;font-weight:600;}
+.auth-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.auth-btn{padding:9px 16px;border-radius:var(--r-full);font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid var(--primary);background:var(--primary);color:#fff;white-space:nowrap;}
+.auth-btn.sign-out{background:var(--surface);color:var(--error);border-color:var(--error);}
+.sync-status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--faint);}
+.sync-dot.ok{background:#437a22;}
+.sync-dot.err{background:var(--error);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      </div>
+      <span class="app-title">PCCM Logbook</span>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- LOG SCREEN -->
+  <div id="screen-log" class="screen active">
+    <!-- AUTH BANNER -->
+    <div class="auth-banner" id="authBanner">
+      <div>
+        <div class="auth-info" id="authInfo">Not signed in</div>
+        <div class="auth-sub">Sign in to sync to your Google Sheet</div>
+      </div>
+      <button class="auth-btn" id="authBtn" onclick="handleAuthBtn()">Sign in with Google</button>
+    </div>
+
+    <div class="hero">
+      <h1>PCCM Logbook</h1>
+      <p>Fellowship procedure logging</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Encounter details</div>
+
+      <!-- Row 1: date / initials / MRN -->
+      <div class="row-3">
+        <div class="field"><label>Date</label><input id="encDate" type="date"/></div>
+        <div class="field"><label>Initials <span class="opt">(optional)</span></label><input id="encInitials" type="text" maxlength="10" placeholder="J.D."/></div>
+        <div class="field"><label>MRN <span class="opt">(optional)</span></label><input id="encMRN" type="text" inputmode="numeric" placeholder="1234567"/></div>
+      </div>
+
+      <!-- Row 2: location / attending -->
+      <div class="row-2">
+        <div class="field"><label>Location</label>
+          <select id="encLocation">
+            <option>Bedside/ICU</option>
+            <option>MICU procedure room</option>
+            <option>Bronchoscopy suite</option>
+            <option>OR</option>
+            <option>Stepdown/floor</option>
+            <option>ED</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Attending</label>
+          <select id="encAttending">
+            <option value="">— Select attending —</option>
+            <option value="Agrawal, Abhinav">Agrawal, Abhinav</option>
+            <option value="Basist, Madeleine">Basist, Madeleine</option>
+            <option value="Chang, Anna">Chang, Anna</option>
+            <option value="Davidov, Iosif">Davidov, Iosif</option>
+            <option value="Derfel, Juliana">Derfel, Juliana</option>
+            <option value="Dhar, Sean">Dhar, Sean</option>
+            <option value="Duenas, Sean">Duenas, Sean</option>
+            <option value="Durst, Matthew">Durst, Matthew</option>
+            <option value="Emeagwali, Nkiruka">Emeagwali, Nkiruka</option>
+            <option value="Fryman, Craig">Fryman, Craig</option>
+            <option value="Gottesman, Eric">Gottesman, Eric</option>
+            <option value="Habibullah, Junaid">Habibullah, Junaid</option>
+            <option value="Hahn, Stella">Hahn, Stella</option>
+            <option value="Hamad, Mohammed">Hamad, Mohammed</option>
+            <option value="Hasan, Zubair">Hasan, Zubair</option>
+            <option value="Hessel, Justina">Hessel, Justina</option>
+            <option value="Hilewitz, Ayelet">Hilewitz, Ayelet</option>
+            <option value="Iakovou, Annamaria">Iakovou, Annamaria</option>
+            <option value="Khanijo, Sameer">Khanijo, Sameer</option>
+            <option value="Kim, Adam">Kim, Adam</option>
+            <option value="Korotun, Maksim">Korotun, Maksim</option>
+            <option value="Lisker, Gita">Lisker, Gita</option>
+            <option value="MacDonald, Zachary">MacDonald, Zachary</option>
+            <option value="Makaryus, Mina">Makaryus, Mina</option>
+            <option value="Mayo, Paul">Mayo, Paul</option>
+            <option value="Melamud, Aleksandr">Melamud, Aleksandr</option>
+            <option value="Millwala, Salman">Millwala, Salman</option>
+            <option value="Mohanka, Manish">Mohanka, Manish</option>
+            <option value="Moonian, Andrew">Moonian, Andrew</option>
+            <option value="Morim, Olga">Morim, Olga</option>
+            <option value="Murn, Michael">Murn, Michael</option>
+            <option value="Narasimhan, Mangala">Narasimhan, Mangala</option>
+            <option value="Palmares, Francine">Palmares, Francine</option>
+            <option value="Pierce, Matthew">Pierce, Matthew</option>
+            <option value="Prabhakar, Laxminarayan">Prabhakar, Laxminarayan</option>
+            <option value="Quintero, Luis">Quintero, Luis</option>
+            <option value="Ravishankar, Shreyas">Ravishankar, Shreyas</option>
+            <option value="Sfakianos, Maria">Sfakianos, Maria</option>
+            <option value="Shah, Dimple">Shah, Dimple</option>
+            <option value="Shaikh, Aman">Shaikh, Aman</option>
+            <option value="Singas, Effie">Singas, Effie</option>
+            <option value="Smith, Kira">Smith, Kira</option>
+            <option value="Tafreshi, Mehran">Tafreshi, Mehran</option>
+            <option value="Talwar, Arunabh">Talwar, Arunabh</option>
+            <option value="Tomanelli, Toni Ann">Tomanelli, Toni Ann</option>
+            <option value="Walsh, Danielle">Walsh, Danielle</option>
+            <option value="Wang, Janice">Wang, Janice</option>
+            <option value="Weinstein, Tatiana">Weinstein, Tatiana</option>
+            <option value="Wong, Kelvin">Wong, Kelvin</option>
+            <option value="Zaidi, Gulrukh">Zaidi, Gulrukh</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROCEDURE SELECTION -->
+    <div class="card">
+      <div class="card-title">Procedures</div>
+      <div id="procContainer"></div>
+    </div>
+
+    <!-- SELECTED + BOTTOM FIELDS -->
+    <div class="card">
+      <div class="card-title">Selected procedures</div>
+      <div class="badge-wrap" id="selectedWrap"><span style="color:var(--muted);font-size:14px;">None selected.</span></div>
+
+      <div style="margin-top:20px;">
+        <!-- Row: role / success -->
+        <div class="row-2">
+          <div class="field"><label>Role</label>
+            <select id="encRole">
+              <option>Primary operator</option>
+              <option>Assisted</option>
+              <option>Observed</option>
+            </select>
+          </div>
+          <div class="field"><label>Outcome</label>
+            <select id="encOutcome">
+              <option value="">— Select —</option>
+              <option>Successful</option>
+              <option>Partially successful</option>
+              <option>Unsuccessful</option>
+              <option>Complication</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row: indication / complications -->
+        <div class="row-2">
+          <div class="field"><label>Indication <span class="opt">(optional)</span></label><input id="encIndication" type="text" placeholder="e.g. respiratory failure, effusion"/></div>
+          <div class="field"><label>Complications <span class="opt">(optional)</span></label><input id="encComplications" type="text" placeholder="None / pneumothorax / bleeding..."/></div>
+        </div>
+
+        <div class="field"><label>Notes <span class="opt">(optional)</span></label><textarea id="encNotes" placeholder="Key findings, teaching points, difficulty..."></textarea></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="clearSelection()">Clear</button>
+        <button class="btn btn-primary" id="saveBtn" onclick="saveEncounter()">Save encounter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY SCREEN -->
+  <div id="screen-history" class="screen">
+    <div class="card">
+      <div class="card-title">History</div>
+      <div class="filter-tabs" id="filterTabs"></div>
+      <div id="logList"><span style="color:var(--muted);">No encounters logged yet.</span></div>
+    </div>
+  </div>
+
+  <!-- STATS SCREEN -->
+  <div id="screen-stats" class="screen">
+    <div class="hero" style="margin-bottom:16px;">
+      <div class="metrics">
+        <div class="metric"><div class="metric-num" id="heroEnc">0</div><div class="metric-label">Encounters</div></div>
+        <div class="metric"><div class="metric-num" id="heroProc">0</div><div class="metric-label">Procedures</div></div>
+        <div class="metric"><div class="metric-num" id="heroMonth">0</div><div class="metric-label">This month</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Procedure counts</div>
+      <div id="statList"><span style="color:var(--muted);">No data yet.</span></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS SCREEN -->
+  <div id="screen-settings" class="screen">
+    <div class="card">
+      <div class="card-title">Defaults</div>
+      <div class="field"><label>Default attending</label>
+        <select id="settingsAttending">
+          <option value="">— None —</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveSettings()">Save settings</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Export</div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="exportCsv()">Export CSV</button>
+        <button class="btn btn-ghost" onclick="exportJson()">Export JSON</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Google Sheets sync</div>
+      <div class="auth-banner" id="settingsAuthBanner" style="margin-bottom:14px;">
+        <div>
+          <div class="auth-info" id="settingsAuthInfo">Not signed in</div>
+          <div class="auth-sub" id="settingsAuthSub">Sign in to enable automatic sync to your own Google Drive</div>
+        </div>
+        <button class="auth-btn" id="settingsAuthBtn" onclick="handleAuthBtn()">Sign in</button>
+      </div>
+      <div class="field"><label>Sheet name <span class="opt">(default: PCCM Logbook)</span></label><input id="settingsSheet" type="text" placeholder="PCCM Logbook"/></div>
+      <button class="btn btn-primary btn-full" onclick="saveGoogleSettings()">Save settings</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showScreen('log',this)"><span class="tab-icon">➕</span>Log</button>
+  <button class="tab-btn" onclick="showScreen('history',this)"><span class="tab-icon">🕘</span>History</button>
+  <button class="tab-btn" onclick="showScreen('stats',this)"><span class="tab-icon">📊</span>Stats</button>
+  <button class="tab-btn" onclick="showScreen('settings',this)"><span class="tab-icon">⚙️</span>Settings</button>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal" onclick="closeEditModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title">Edit Encounter</div>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="row-3">
+        <div class="field"><label>Date</label><input id="editDate" type="date"/></div>
+        <div class="field"><label>Initials</label><input id="editInitials" type="text" maxlength="10" placeholder="J.D."/></div>
+        <div class="field"><label>MRN</label><input id="editMRN" type="text" inputmode="numeric" placeholder="1234567"/></div>
+      </div>
+      <div class="row-2">
+        <div class="field"><label>Location</label>
+          <select id="editLocation">
+            <option>Bedside/ICU</option><option>MICU procedure room</option><option>Bronchoscopy suite</option><option>OR</option><option>Stepdown/floor</option><option>ED</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Attending</label><select id="editAttending"><option value="">— Select attending —</option>
+            <option value="Agrawal, Abhinav">Agrawal, Abhinav</option>
+            <option value="Basist, Madeleine">Basist, Madeleine</option>
+            <option value="Chang, Anna">Chang, Anna</option>
+            <option value="Davidov, Iosif">Davidov, Iosif</option>
+            <option value="Derfel, Juliana">Derfel, Juliana</option>
+            <option value="Dhar, Sean">Dhar, Sean</option>
+            <option value="Duenas, Sean">Duenas, Sean</option>
+            <option value="Durst, Matthew">Durst, Matthew</option>
+            <option value="Emeagwali, Nkiruka">Emeagwali, Nkiruka</option>
+            <option value="Fryman, Craig">Fryman, Craig</option>
+            <option value="Gottesman, Eric">Gottesman, Eric</option>
+            <option value="Habibullah, Junaid">Habibullah, Junaid</option>
+            <option value="Hahn, Stella">Hahn, Stella</option>
+            <option value="Hamad, Mohammed">Hamad, Mohammed</option>
+            <option value="Hasan, Zubair">Hasan, Zubair</option>
+            <option value="Hessel, Justina">Hessel, Justina</option>
+            <option value="Hilewitz, Ayelet">Hilewitz, Ayelet</option>
+            <option value="Iakovou, Annamaria">Iakovou, Annamaria</option>
+            <option value="Khanijo, Sameer">Khanijo, Sameer</option>
+            <option value="Kim, Adam">Kim, Adam</option>
+            <option value="Korotun, Maksim">Korotun, Maksim</option>
+            <option value="Lisker, Gita">Lisker, Gita</option>
+            <option value="MacDonald, Zachary">MacDonald, Zachary</option>
+            <option value="Makaryus, Mina">Makaryus, Mina</option>
+            <option value="Mayo, Paul">Mayo, Paul</option>
+            <option value="Melamud, Aleksandr">Melamud, Aleksandr</option>
+            <option value="Millwala, Salman">Millwala, Salman</option>
+            <option value="Mohanka, Manish">Mohanka, Manish</option>
+            <option value="Moonian, Andrew">Moonian, Andrew</option>
+            <option value="Morim, Olga">Morim, Olga</option>
+            <option value="Murn, Michael">Murn, Michael</option>
+            <option value="Narasimhan, Mangala">Narasimhan, Mangala</option>
+            <option value="Palmares, Francine">Palmares, Francine</option>
+            <option value="Pierce, Matthew">Pierce, Matthew</option>
+            <option value="Prabhakar, Laxminarayan">Prabhakar, Laxminarayan</option>
+            <option value="Quintero, Luis">Quintero, Luis</option>
+            <option value="Ravishankar, Shreyas">Ravishankar, Shreyas</option>
+            <option value="Sfakianos, Maria">Sfakianos, Maria</option>
+            <option value="Shah, Dimple">Shah, Dimple</option>
+            <option value="Shaikh, Aman">Shaikh, Aman</option>
+            <option value="Singas, Effie">Singas, Effie</option>
+            <option value="Smith, Kira">Smith, Kira</option>
+            <option value="Tafreshi, Mehran">Tafreshi, Mehran</option>
+            <option value="Talwar, Arunabh">Talwar, Arunabh</option>
+            <option value="Tomanelli, Toni Ann">Tomanelli, Toni Ann</option>
+            <option value="Walsh, Danielle">Walsh, Danielle</option>
+            <option value="Wang, Janice">Wang, Janice</option>
+            <option value="Weinstein, Tatiana">Weinstein, Tatiana</option>
+            <option value="Wong, Kelvin">Wong, Kelvin</option>
+            <option value="Zaidi, Gulrukh">Zaidi, Gulrukh</option></select></div>
+      </div>
+      <div class="row-2">
+        <div class="field"><label>Role</label><select id="editRole"><option>Primary operator</option><option>Assisted</option><option>Observed</option></select></div>
+        <div class="field"><label>Outcome</label><select id="editOutcome"><option value="">— Select —</option><option>Successful</option><option>Partially successful</option><option>Unsuccessful</option><option>Complication</option></select></div>
+      </div>
+      <div class="row-2">
+        <div class="field"><label>Indication</label><input id="editIndication" type="text" placeholder=""/></div>
+        <div class="field"><label>Complications</label><input id="editComplications" type="text" placeholder=""/></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea id="editNotes"></textarea></div>
+      <div style="padding:10px 0 4px;"><div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Procedures</div><div id="editProcBadges" style="display:flex;flex-wrap:wrap;gap:8px;"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CATS = {
+  'Airway': [
+    ['Endotracheal intubation','🫁'],
+    ['Bronchoscopic intubation','🔦'],
+    ['Percutaneous tracheostomy','✂️']
+  ],
+  'Vascular': [
+    ['Central venous catheter','🧵'],
+    ['Arterial line','📈'],
+    ['Dialysis catheter','🩸'],
+    ['Pulmonary artery catheter','🎈'],
+    ['Transvenous pacemaker insertion','⚡'],
+    ['Intraosseous (IO)','🪛']
+  ],
+  'Pleural': [
+    ['Thoracentesis','💉'],
+    ['Pigtail chest tube','🌀'],
+    ['Surgical chest tube','🔪'],
+    ['Tunneled pleural catheter','🔗']
+  ],
+  'Bronchoscopy': [
+    ['Flexible bronchoscopy','🔭'],
+    ['BAL','🧪'],
+    ['Endobronchial biopsy','🤏'],
+    ['Transbronchial biopsy','🗜️'],
+    ['EBUS-TBNA','📡']
+  ],
+  'Other ICU': [
+    ['Paracentesis','🫙'],
+    ['Lumbar puncture','🦴'],
+    ['Cardioversion','💥'],
+    ['Pericardiocentesis','❤️'],
+    ['Transesophageal echocardiogram','🫀'],
+    ['Nasogastric tube','👃']
+  ]
+};
+
+let logs = JSON.parse(localStorage.getItem('pccm_logs')||'[]');
+let settings = JSON.parse(localStorage.getItem('pccm_settings')||'{"appsScriptUrl":"","sheetName":"Sheet1"}');
+let selected = new Set();
+let currentFilter = 'All';
+let editingId = null;
+
+function todayStr(){
+  const d = new Date(), tz = new Date(d.getTime()-d.getTimezoneOffset()*60000);
+  return tz.toISOString().slice(0,10);
+}
+function monthPfx(){ return todayStr().slice(0,7); }
+function stamp(){ return new Date().toLocaleString(); }
+function esc(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'),1900); }
+
+function showScreen(name,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(name==='history') renderLog();
+  if(name==='stats'){ renderStats(); renderHero(); }
+}
+
+function getCat(proc){
+  for(const [cat,items] of Object.entries(CATS)) if(items.find(x=>x[0]===proc)) return cat;
+  return 'Other';
+}
+
+function renderProcedures(){
+  const wrap = document.getElementById('procContainer');
+  wrap.innerHTML = Object.entries(CATS).map(([cat,items])=>`
+    <div class="cat-block">
+      <div class="cat-label">${cat}</div>
+      <div class="proc-grid">${items.map(([name,icon])=>`
+        <div class="proc-card${selected.has(name)?' active':''}" onclick="toggleProc(this)" data-proc="${esc(name)}" data-cat="${esc(cat)}">
+          <div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
+          <div class="proc-card-icon">${icon}</div>
+          <div class="proc-card-name">${name}</div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function toggleProc(el){
+  const name = el.dataset.proc;
+  if(selected.has(name)) selected.delete(name); else selected.add(name);
+  renderProcedures(); renderSelected();
+}
+
+function renderSelected(){
+  const wrap = document.getElementById('selectedWrap');
+  wrap.innerHTML = selected.size===0 ? '<span style="color:var(--muted);font-size:14px;">None selected.</span>'
+    : [...selected].map(n=>`<span class="proc-badge">${esc(n)}</span>`).join('');
+}
+
+function clearSelection(){ selected.clear(); renderProcedures(); renderSelected(); }
+
+async function saveEncounter(){
+  if(selected.size===0){ showToast('Select at least one procedure'); return; }
+  const enc = {
+    id: 'ENC-'+Date.now().toString(36).toUpperCase(),
+    date: document.getElementById('encDate').value||todayStr(),
+    initials: document.getElementById('encInitials').value.trim(),
+    mrn: document.getElementById('encMRN').value.trim(),
+    attending: document.getElementById('encAttending').value,
+    location: document.getElementById('encLocation').value,
+    role: document.getElementById('encRole').value,
+    outcome: document.getElementById('encOutcome').value,
+    indication: document.getElementById('encIndication').value.trim(),
+    complications: document.getElementById('encComplications').value.trim(),
+    notes: document.getElementById('encNotes').value.trim(),
+    loggedAt: stamp(),
+    procedures: [...selected].map(p=>({name:p,category:getCat(p)}))
+  };
+  logs.push(enc);
+  localStorage.setItem('pccm_logs',JSON.stringify(logs));
+  // Reset
+  ['encInitials','encMRN','encIndication','encComplications','encNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('encAttending').value=settings.defaultAttending||'';
+  document.getElementById('encLocation').value='Bedside/ICU';
+  document.getElementById('encRole').value='Primary operator';
+  document.getElementById('encOutcome').value='';
+  clearSelection(); renderHero();
+  // Sync
+  if(gAuthToken){
+    const btn=document.getElementById('saveBtn'); btn.textContent='Syncing…'; btn.disabled=true;
+    try {
+      await syncEncounterToSheets(enc);
+      showToast('✓ Saved & synced');
+    } catch(e) {
+      showToast('Saved locally — sync error');
+    }
+    btn.textContent='Save encounter'; btn.disabled=false;
+  } else { showToast('Encounter saved — sign in to sync'); }
+}
+
+/* HISTORY */
+function renderLog(){
+  const list = document.getElementById('logList');
+  const filtered = currentFilter==='All' ? logs : logs.filter(e=>e.procedures.some(p=>p.category===currentFilter));
+  renderFilterTabs();
+  if(filtered.length===0){ list.innerHTML='<span style="color:var(--muted);">No encounters yet.</span>'; return; }
+  list.innerHTML = [...filtered].reverse().map(enc=>`
+    <div class="log-entry">
+      <div class="log-entry-header">
+        <div>
+          <div class="log-date">${esc(enc.date)}</div>
+          <div class="log-sub">${esc(enc.attending||'No attending')} · ${esc(enc.location||'')}</div>
+        </div>
+        <div class="btn-pair">
+          <button class="log-action-btn log-edit-btn" onclick="openEditModal('${enc.id}')">Edit</button>
+          <button class="log-action-btn" onclick="deleteEncounter('${enc.id}')" style="color:var(--error);">Delete</button>
+        </div>
+      </div>
+      <div class="log-procs">${(enc.procedures||[]).map(p=>`<span class="proc-badge">${esc(p.name)}</span>`).join('')}</div>
+      <div class="log-meta">${[enc.initials?'Initials: '+esc(enc.initials):'',enc.mrn?'MRN: '+esc(enc.mrn):'',enc.role?esc(enc.role):'',enc.outcome?esc(enc.outcome):''].filter(Boolean).join(' · ')}</div>
+      ${enc.indication||enc.complications?`<div class="log-meta">${[enc.indication?'Indication: '+esc(enc.indication):'',enc.complications?'Complications: '+esc(enc.complications):''].filter(Boolean).join(' · ')}</div>`:''}
+      ${enc.notes?`<div class="log-note">${esc(enc.notes)}</div>`:''}
+    </div>`).join('');
+}
+
+function renderFilterTabs(){
+  const cats = ['All',...Object.keys(CATS)];
+  document.getElementById('filterTabs').innerHTML = cats.map(c=>`<button class="filter-tab${currentFilter===c?' active':''}" onclick="setFilter('${c.replace(/'/g,"\'")}',this)">${c}</button>`).join('');
+}
+function setFilter(f,btn){ currentFilter=f; renderLog(); }
+
+function deleteEncounter(id){
+  logs=logs.filter(e=>e.id!==id);
+  localStorage.setItem('pccm_logs',JSON.stringify(logs));
+  renderLog(); renderHero(); showToast('Encounter deleted');
+}
+
+/* EDIT MODAL */
+function openEditModal(id){
+  const enc=logs.find(e=>e.id===id); if(!enc) return;
+  editingId=id;
+  document.getElementById('editDate').value=enc.date||'';
+  document.getElementById('editInitials').value=enc.initials||'';
+  document.getElementById('editMRN').value=enc.mrn||'';
+  document.getElementById('editAttending').value=enc.attending||'';
+  document.getElementById('editLocation').value=enc.location||'Bedside/ICU';
+  document.getElementById('editRole').value=enc.role||'Primary operator';
+  document.getElementById('editOutcome').value=enc.outcome||'';
+  document.getElementById('editIndication').value=enc.indication||'';
+  document.getElementById('editComplications').value=enc.complications||'';
+  document.getElementById('editNotes').value=enc.notes||'';
+  document.getElementById('editProcBadges').innerHTML=(enc.procedures||[]).map(p=>`<span class="proc-badge">${esc(p.name)}</span>`).join('');
+  document.getElementById('editModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeEditModal(e){
+  if(e&&e.target!==document.getElementById('editModal')) return;
+  document.getElementById('editModal').classList.remove('open');
+  document.body.style.overflow=''; editingId=null;
+}
+function saveEdit(){
+  if(!editingId) return;
+  const idx=logs.findIndex(e=>e.id===editingId); if(idx===-1) return;
+  logs[idx].date=document.getElementById('editDate').value;
+  logs[idx].initials=document.getElementById('editInitials').value.trim();
+  logs[idx].mrn=document.getElementById('editMRN').value.trim();
+  logs[idx].attending=document.getElementById('editAttending').value;
+  logs[idx].location=document.getElementById('editLocation').value;
+  logs[idx].role=document.getElementById('editRole').value;
+  logs[idx].outcome=document.getElementById('editOutcome').value;
+  logs[idx].indication=document.getElementById('editIndication').value.trim();
+  logs[idx].complications=document.getElementById('editComplications').value.trim();
+  logs[idx].notes=document.getElementById('editNotes').value.trim();
+  localStorage.setItem('pccm_logs',JSON.stringify(logs));
+  document.getElementById('editModal').classList.remove('open');
+  document.body.style.overflow=''; editingId=null;
+  renderLog(); showToast('Encounter updated');
+}
+
+/* STATS */
+function renderStats(){
+  const counts={};
+  logs.forEach(e=>(e.procedures||[]).forEach(p=>counts[p.name]=(counts[p.name]||0)+1));
+  const rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('statList').innerHTML = rows.length
+    ? rows.map(([n,c])=>`<div class="stat-row"><span class="stat-name">${esc(n)}</span><span class="stat-count">${c}</span></div>`).join('')
+    : '<span style="color:var(--muted);">No data yet.</span>';
+}
+
+/* SETTINGS */
+function saveSettings(){
+  settings.defaultAttending = document.getElementById('settingsAttending').value;
+  localStorage.setItem('pccm_settings',JSON.stringify(settings));
+  showToast('Default attending saved');
+}
+function saveGoogleSettings(){
+  settings.sheetName = document.getElementById('settingsSheet').value.trim()||'PCCM Logbook';
+  localStorage.setItem('pccm_settings',JSON.stringify(settings));
+  showToast('Settings saved');
+}
+
+/* EXPORT */
+function exportCsv(){
+  // Sheet 1: Raw log
+  const rows=[['encounterId','date','initials','mrn','procedure','category','attending','location','role','outcome','indication','complications','notes','loggedAt']];
+  logs.forEach(e=>(e.procedures||[]).forEach(p=>rows.push([e.id,e.date,e.initials||'',e.mrn||'',p.name,p.category,e.attending||'',e.location||'',e.role||'',e.outcome||'',e.indication||'',e.complications||'',e.notes||'',e.loggedAt||''])));
+
+  // Sheet 2: Procedure count summary
+  const procCounts={};
+  logs.forEach(e=>(e.procedures||[]).forEach(p=>{ procCounts[p.name]=(procCounts[p.name]||0)+1; }));
+  const procRows=[[''],['--- PROCEDURE SUMMARY ---'],['Procedure','Count']];
+  Object.entries(procCounts).sort((a,b)=>b[1]-a[1]).forEach(([n,c])=>procRows.push([n,c]));
+
+  // Sheet 3: Per-attending sections (for sign-off)
+  const attLogs={};
+  logs.forEach(e=>{ const att=e.attending||'Unknown'; if(!attLogs[att]) attLogs[att]=[]; attLogs[att].push(e); });
+  const attRows=[[''],['=== PROCEDURES BY ATTENDING (for sign-off/verification) ===']];
+  const hdr=['Date','Initials','MRN','Procedure','Category','Location','Role','Outcome','Indication','Complications','Notes'];
+  Object.keys(attLogs).sort().forEach(att=>{
+    attRows.push([''],['--- '+att+' ---'],hdr);
+    attLogs[att].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+      (e.procedures||[]).forEach(p=>{
+        attRows.push([e.date,e.initials||'',e.mrn||'',p.name,p.category,e.location||'',e.role||'',e.outcome||'',e.indication||'',e.complications||'',e.notes||'']);
+      });
+    });
+    // Count summary for this attending
+    const cnt={};
+    attLogs[att].forEach(e=>(e.procedures||[]).forEach(p=>cnt[p.name]=(cnt[p.name]||0)+1));
+    attRows.push(['Procedure totals:']);
+    Object.entries(cnt).sort((a,b)=>b[1]-a[1]).forEach(([n,c])=>attRows.push(['',n,c]));
+  });
+
+  const allRows=[...rows,...procRows,...attRows];
+  const csv=allRows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='pccm-logbook.csv'; a.click();
+}
+function exportJson(){
+  const a=document.createElement('a'); a.href='data:application/json,'+encodeURIComponent(JSON.stringify(logs,null,2)); a.download='pccm-logbook.json'; a.click();
+}
+
+/* HERO */
+function renderHero(){
+  const total=logs.reduce((n,e)=>n+(e.procedures||[]).length,0);
+  const month=logs.filter(e=>(e.date||'').startsWith(monthPfx())).reduce((n,e)=>n+(e.procedures||[]).length,0);
+  document.getElementById('heroEnc').textContent=logs.length;
+  document.getElementById('heroProc').textContent=total;
+  document.getElementById('heroMonth').textContent=month;
+}
+
+// Init
+document.getElementById('encDate').value = todayStr();
+// OAuth handles sync — no manual URL needed
+document.getElementById('settingsSheet').value = settings.sheetName||'Sheet1';
+// Populate settings attending dropdown
+const attList = [...document.getElementById('encAttending').options].slice(1).map(o=>o.value);
+const settingsAttEl = document.getElementById('settingsAttending');
+attList.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; settingsAttEl.appendChild(o); });
+settingsAttEl.value = settings.defaultAttending||'';
+// Apply default attending to form
+if(settings.defaultAttending) document.getElementById('encAttending').value = settings.defaultAttending;
+renderProcedures(); renderSelected(); renderHero(); renderLog();
+
+
+// ─── GOOGLE OAUTH + SHEETS API ───────────────────────────────────────────────
+// Replace CLIENT_ID with your Google Cloud OAuth 2.0 client ID
+const GOOGLE_CLIENT_ID = '78017385991-8npbvhbncqkpa9s3uqs1bjs0tsipfh8d.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+
+let gAuthToken = null;
+let gUserEmail = '';
+let gUserName = '';
+let tokenClient = null;
+
+function initGoogleAuth() {
+  if (!window.google || !window.google.accounts) {
+    setTimeout(initGoogleAuth, 500); return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) { showToast('Sign-in failed'); return; }
+      gAuthToken = resp.access_token;
+      // Get user info
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + gAuthToken }
+      }).then(r=>r.json()).then(info => {
+        gUserEmail = info.email || '';
+        gUserName = info.name || info.email || 'Signed in';
+        updateAuthUI(true);
+      });
+    }
+  });
+}
+
+function handleAuthBtn() {
+  if (gAuthToken) {
+    // Sign out
+    google.accounts.oauth2.revoke(gAuthToken, () => {});
+    gAuthToken = null; gUserEmail = ''; gUserName = '';
+    updateAuthUI(false);
+    showToast('Signed out');
+  } else {
+    tokenClient.requestAccessToken();
+  }
+}
+
+function updateAuthUI(signedIn) {
+  const banner = document.getElementById('authBanner');
+  const info = document.getElementById('authInfo');
+  const btn = document.getElementById('authBtn');
+  const sBanner = document.getElementById('settingsAuthBanner');
+  const sInfo = document.getElementById('settingsAuthInfo');
+  const sSub = document.getElementById('settingsAuthSub');
+  const sBtn = document.getElementById('settingsAuthBtn');
+  if (signedIn) {
+    banner.classList.add('signed-in');
+    info.textContent = '✓ ' + gUserName;
+    btn.textContent = 'Sign out'; btn.classList.add('sign-out');
+    sBanner.classList.add('signed-in');
+    sInfo.textContent = '✓ ' + gUserName + ' (' + gUserEmail + ')';
+    sSub.textContent = 'Data syncs to your Google Drive automatically';
+    sBtn.textContent = 'Sign out'; sBtn.classList.add('sign-out');
+  } else {
+    banner.classList.remove('signed-in');
+    info.textContent = 'Not signed in';
+    btn.textContent = 'Sign in with Google'; btn.classList.remove('sign-out');
+    sBanner.classList.remove('signed-in');
+    sInfo.textContent = 'Not signed in';
+    sSub.textContent = 'Sign in to enable automatic sync to your own Google Drive';
+    sBtn.textContent = 'Sign in'; sBtn.classList.remove('sign-out');
+  }
+}
+
+async function syncEncounterToSheets(enc) {
+  const sheetName = settings.sheetName || 'PCCM Logbook';
+  const attSheet = enc.attending ? enc.attending.split(',')[0].trim() : null;
+
+  // 1. Get or create the spreadsheet
+  const ssId = await getOrCreateSpreadsheet(sheetName);
+
+  // 2. Ensure main sheet has headers, write rows
+  const rows = enc.procedures.map(p => [
+    enc.id, enc.date, enc.initials||'', enc.mrn||'', p.name, p.category,
+    enc.attending||'', enc.location||'', enc.role||'', enc.outcome||'',
+    enc.indication||'', enc.complications||'', enc.notes||'', enc.loggedAt||''
+  ]);
+
+  await ensureSheetsHeaders(ssId, 'Log', [
+    'Encounter ID','Date','Initials','MRN','Procedure','Category',
+    'Attending','Location','Role','Outcome','Indication','Complications','Notes','Logged At'
+  ]);
+  await appendToSheet(ssId, 'Log', rows);
+
+  // 3. Write to attending-specific tab
+  if (attSheet) {
+    await ensureSheetsHeaders(ssId, attSheet, [
+      'Encounter ID','Date','Initials','MRN','Procedure','Category',
+      'Attending','Location','Role','Outcome','Indication','Complications','Notes','Logged At'
+    ]);
+    await appendToSheet(ssId, attSheet, rows);
+  }
+
+  // Save ssId for future use
+  settings.spreadsheetId = ssId;
+  localStorage.setItem('pccm_settings', JSON.stringify(settings));
+}
+
+async function getOrCreateSpreadsheet(title) {
+  // Return cached ID if available
+  if (settings.spreadsheetId) return settings.spreadsheetId;
+
+  // Search Drive for existing sheet
+  const search = await gFetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='${encodeURIComponent(title)}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false&fields=files(id,name)`
+  );
+  const found = await search.json();
+  if (found.files && found.files.length > 0) return found.files[0].id;
+
+  // Create new spreadsheet
+  const create = await gFetch('https://sheets.googleapis.com/v4/spreadsheets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ properties: { title } })
+  });
+  const ss = await create.json();
+  return ss.spreadsheetId;
+}
+
+async function ensureSheetsHeaders(ssId, sheetTab, headers) {
+  // Get sheet list
+  const meta = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=sheets.properties`);
+  const metaJson = await meta.json();
+  const sheets = (metaJson.sheets || []).map(s => s.properties.title);
+
+  if (!sheets.includes(sheetTab)) {
+    // Add new sheet tab
+    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${ssId}:batchUpdate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [{ addSheet: { properties: { title: sheetTab } } }] })
+    });
+    // Write headers
+    await appendToSheet(ssId, sheetTab, [headers]);
+  } else {
+    // Check if row 1 already has headers
+    const check = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${ssId}/values/${encodeURIComponent(sheetTab)}!A1:A1`);
+    const checkJson = await check.json();
+    if (!checkJson.values || checkJson.values.length === 0) {
+      await appendToSheet(ssId, sheetTab, [headers]);
+    }
+  }
+}
+
+async function appendToSheet(ssId, sheetTab, rows) {
+  await gFetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${ssId}/values/${encodeURIComponent(sheetTab)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: rows })
+    }
+  );
+}
+
+function gFetch(url, opts = {}) {
+  opts.headers = opts.headers || {};
+  opts.headers['Authorization'] = 'Bearer ' + gAuthToken;
+  return fetch(url, opts);
+}
+
+// Init auth when Google script loads
+window.addEventListener('load', () => setTimeout(initGoogleAuth, 800));
+
+</script>
+</body>
+</html>
