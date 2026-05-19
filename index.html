@@ -854,12 +854,12 @@ async function syncEncounterToSheets(enc) {
   const rows = enc.procedures.map(p => [
     enc.id, enc.date, enc.initials||'', enc.mrn||'', p.name, p.category,
     enc.attending||'', enc.location||'', enc.role||'', enc.outcome||'',
-    enc.indication||'', enc.complications||'', enc.notes||'', enc.loggedAt||''
+    enc.indication||'', enc.complications||'', enc.notes||'', enc.loggedAt||'', ''
   ]);
 
   await ensureSheetsHeaders(ssId, 'Log', [
     'Encounter ID','Date','Initials','MRN','Procedure','Category',
-    'Attending','Location','Role','Outcome','Indication','Complications','Notes','Logged At'
+    'Attending','Location','Role','Outcome','Indication','Complications','Notes','Logged At','Attending Verification'
   ]);
   await appendToSheet(ssId, 'Log', rows);
 
@@ -867,7 +867,7 @@ async function syncEncounterToSheets(enc) {
   if (attSheet) {
     await ensureSheetsHeaders(ssId, attSheet, [
       'Encounter ID','Date','Initials','MRN','Procedure','Category',
-      'Attending','Location','Role','Outcome','Indication','Complications','Notes','Logged At'
+      'Attending','Location','Role','Outcome','Indication','Complications','Notes','Logged At','Attending Verification'
     ]);
     await appendToSheet(ssId, attSheet, rows);
   }
