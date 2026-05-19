@@ -157,7 +157,7 @@ textarea{min-height:80px;resize:vertical;}
 }
 /* AUTH */
 .auth-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--primary-tint);border:1.5px solid rgba(13,124,134,.25);border-radius:var(--r-lg);padding:12px 14px;margin-bottom:16px;}
-.auth-banner.signed-in{background:#f0faf4;border-color:rgba(67,122,34,.3);}
+.auth-banner.signed-in{background:var(--surface2);border-color:rgba(67,160,50,.4);}
 .auth-info{font-size:13px;font-weight:600;}
 .auth-sub{font-size:12px;color:var(--muted);margin-top:2px;}
 .auth-btn{padding:9px 16px;border-radius:var(--r-full);font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid var(--primary);background:var(--primary);color:#fff;white-space:nowrap;}
@@ -809,6 +809,10 @@ attList.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.text
 settingsAttEl.value = settings.defaultAttending||'';
 // Apply default attending to form
 if(settings.defaultAttending) document.getElementById('encAttending').value = settings.defaultAttending;
+// Restore cached auth display
+const _cachedName = localStorage.getItem('pccm_auth_name');
+const _cachedEmail = localStorage.getItem('pccm_auth_email');
+if (_cachedName && _cachedEmail) { gUserName = _cachedName; gUserEmail = _cachedEmail; updateAuthUI(true); }
 renderProcedures(); renderSelected(); renderHero(); renderLog();
 
 
@@ -830,25 +834,33 @@ function initGoogleAuth() {
     client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
     callback: (resp) => {
-      if (resp.error) { showToast('Sign-in failed'); return; }
+      if (resp.error) { return; }
       gAuthToken = resp.access_token;
-      // Get user info
+      // Cache email for silent re-auth
       fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: 'Bearer ' + gAuthToken }
       }).then(r=>r.json()).then(info => {
         gUserEmail = info.email || '';
         gUserName = info.name || info.email || 'Signed in';
+        if (gUserEmail) localStorage.setItem('pccm_auth_email', gUserEmail);
+        if (gUserName) localStorage.setItem('pccm_auth_name', gUserName);
         updateAuthUI(true);
       });
     }
   });
+  // Silent auto-sign-in if user previously consented
+  const savedEmail = localStorage.getItem('pccm_auth_email');
+  if (savedEmail) {
+    // Attempt silent token refresh (no UI prompt)
+    tokenClient.requestAccessToken({ prompt: '', login_hint: savedEmail });
+  }
 }
 
 function handleAuthBtn() {
   if (gAuthToken) {
     // Sign out
     google.accounts.oauth2.revoke(gAuthToken, () => {});
-    gAuthToken = null; gUserEmail = ''; gUserName = '';
+    gAuthToken = null; gUserEmail = ''; gUserName = ''; localStorage.removeItem('pccm_auth_email'); localStorage.removeItem('pccm_auth_name');
     updateAuthUI(false);
     showToast('Signed out');
   } else {
