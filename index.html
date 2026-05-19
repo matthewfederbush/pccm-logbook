@@ -6,320 +6,678 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <link rel="apple-touch-icon" href="icon.png"/>
-<link rel="apple-touch-icon" href="icon.png"/>
-<meta name="apple-mobile-web-app-title" content="PCCM Logbook"/>
-<title>PCCM Logbook</title>
+<meta name="apple-mobile-web-app-title" content="IP Logbook"/>
+<title>IP Logbook</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --bg:#f7f6f2; --surface:#ffffff; --surface2:#f9f8f5; --surface3:#f0ede8;
   --border:rgba(40,37,29,0.13); --divider:#e4e1db;
   --text:#28251d; --muted:#7a7974; --faint:#bab9b4;
-  --primary:#0d7c86; --primary-h:#085e66; --primary-tint:rgba(13,124,134,0.10);
-  --error:#c0392b; --success:#437a22;
+  --primary:#01696f; --primary-h:#0c4e54; --primary-tint:rgba(1,105,111,0.1);
+  --error:#c0392b; --success:#437a22; --warn:#964219;
   --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-full:999px;
   --sh:0 1px 3px rgba(0,0,0,0.07),0 2px 8px rgba(0,0,0,0.05);
-  --sh-md:0 4px 16px rgba(0,0,0,0.10),0 2px 6px rgba(0,0,0,0.06);
+  --sh-md:0 4px 16px rgba(0,0,0,0.1),0 2px 6px rgba(0,0,0,0.06);
 }
-
 [data-theme="dark"] {
   --bg:#171614; --surface:#1c1b19; --surface2:#222120; --surface3:#2a2927;
-  --border:rgba(255,255,255,0.10); --divider:#2e2d2b;
+  --border:rgba(255,255,255,0.1); --divider:#2e2d2b;
   --text:#d0cfcd; --muted:#7a7876; --faint:#4e4d4b;
   --primary:#4f98a3; --primary-h:#3a8590; --primary-tint:rgba(79,152,163,0.13);
-  --error:#e05c4b; --success:#5a9e2f;
   --sh:0 1px 3px rgba(0,0,0,0.3),0 2px 8px rgba(0,0,0,0.2);
   --sh-md:0 4px 16px rgba(0,0,0,0.4),0 2px 6px rgba(0,0,0,0.25);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{height:100%;-webkit-text-size-adjust:none;}
-body{min-height:100dvh;font-family:"Inter",system-ui,sans-serif;font-size:16px;line-height:1.55;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;padding-bottom:100px;}
+html{height:100%;-webkit-text-size-adjust:none;text-size-adjust:none;}
+body{min-height:100dvh;font-family:'Inter',system-ui,sans-serif;font-size:16px;line-height:1.55;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;}
 input,select,textarea,button{font:inherit;color:inherit;}
 button{cursor:pointer;background:none;border:none;}
+img,svg{display:block;max-width:100%;}
 
-/* TOPBAR */
 .topbar{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0px);}
 .topbar-inner{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 16px;gap:12px;}
-.brand{display:flex;align-items:center;gap:10px;}
+.brand{display:flex;align-items:center;gap:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .logo{width:34px;height:34px;border-radius:10px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.logo svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;}
-.app-title{font-size:18px;font-weight:700;}
+.app-title{font-size:18px;font-weight:700;line-height:1;}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+.icon-btn{width:40px;height:40px;border-radius:var(--r-full);border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.icon-btn:active{background:var(--surface3);}
 
-/* CONTENT */
-.content{padding:16px 16px 120px;max-width:860px;margin:0 auto;width:100%;box-sizing:border-box;overflow-x:hidden;}
+.content{padding:24px 16px 120px;max-width:860px;margin:0 auto;width:100%;}
 .screen{display:none;}.screen.active{display:block;}
 
-/* CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--sh);padding:20px;margin-bottom:16px;}
 .card-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:16px;}
 
-/* HERO */
-.hero{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-h) 100%);color:#fff;padding:22px 20px;border-radius:var(--r-xl);box-shadow:var(--sh-md);margin-bottom:16px;}
-.hero h1{font-size:26px;font-weight:800;margin-bottom:4px;}
-.hero p{font-size:14px;opacity:.88;}
-.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
-.metric{background:rgba(255,255,255,.15);padding:12px;border-radius:14px;text-align:center;}
-.metric-num{font-size:24px;font-weight:800;}
-.metric-label{font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:.06em;}
+.repeat-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r-full);border:1.5px solid var(--primary);background:var(--primary-tint);color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background 0.15s,transform 0.1s;white-space:nowrap;}
+.repeat-btn:active{background:var(--primary);color:#fff;transform:scale(0.97);}
+.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;}
+.section-title{font-size:20px;font-weight:700;}
+.section-sub{font-size:13px;color:var(--muted);margin-top:3px;}
 
-/* FORM FIELDS */
-.field{margin-bottom:14px;}
+.field{margin-bottom:16px;}
+.field:last-child{margin-bottom:0;}
 label{display:block;font-size:14px;font-weight:600;margin-bottom:5px;}
-.opt{font-weight:400;color:var(--muted);font-size:13px;}
+.opt{font-weight:400;color:var(--muted);}
 input[type="text"],input[type="date"],select,textarea{
   width:100%;padding:11px 13px;border:1.5px solid var(--border);
   border-radius:var(--r-md);background:var(--surface2);color:var(--text);
   font-size:16px;min-height:48px;-webkit-appearance:none;appearance:none;
-  transition:border-color .15s;
+  transition:border-color 0.15s,box-shadow 0.15s;
 }
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-tint);}
-textarea{min-height:80px;resize:vertical;}
-.row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+input[type="text"]:focus,input[type="date"]:focus,select:focus,textarea:focus{
+  outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-tint);
+}
+select{background-image:url("image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a7974' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
+textarea{min-height:88px;resize:vertical;line-height:1.5;}
 
-/* PROC CARDS */
-.cat-block{margin-bottom:20px;}
-.cat-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;}
-.proc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;}
-.proc-card{display:flex;align-items:center;gap:6px;padding:10px 8px;border:1.5px solid var(--border);border-radius:var(--r-lg);background:var(--surface2);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;box-sizing:border-box;min-width:0;overflow:hidden;position:relative;}
-.proc-card.active{border-color:var(--primary);background:var(--primary-tint);}
-.proc-card-check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--surface);}
-.proc-card.active .proc-card-check{background:var(--primary);border-color:var(--primary);}
-.proc-card-check svg{width:12px;height:12px;stroke:#fff;stroke-width:2.5;fill:none;opacity:0;}
-.proc-card.active .proc-card-check svg{opacity:1;}
-.proc-card-icon{font-size:22px;flex-shrink:0;}
-.proc-card-name{font-size:12px;font-weight:600;line-height:1.25;min-width:0;word-wrap:break-word;overflow-wrap:break-word;hyphens:auto;}
-
-/* SELECTED BADGES */
-.badge-wrap{display:flex;flex-wrap:wrap;gap:8px;min-height:32px;}
-.proc-badge{background:var(--primary-tint);color:var(--primary-h);border:1.5px solid rgba(13,124,134,.25);padding:6px 12px;border-radius:var(--r-full);font-size:13px;font-weight:600;}
-
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 18px;border-radius:var(--r-md);font-size:15px;font-weight:700;cursor:pointer;transition:.15s;border:1.5px solid transparent;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 20px;border-radius:var(--r-full);font-size:15px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.15s;border:none;white-space:nowrap;}
 .btn-primary{background:var(--primary);color:#fff;}
-.btn-primary:active{background:var(--primary-h);}
-.btn-ghost{background:var(--surface2);border-color:var(--border);color:var(--text);}
-.btn-full{width:100%;}
-.btn-row{display:flex;gap:10px;margin-top:16px;}
-.btn-row .btn{flex:1;}
+.btn-primary:active{background:var(--primary-h);transform:scale(0.97);}
+.btn-sm{padding:8px 16px;font-size:13px;border:1.5px solid var(--border);background:var(--surface);border-radius:var(--r-full);}
+.btn-sm:active{background:var(--surface3);}
+.btn-danger{border-color:var(--error);color:var(--error);}
+.btn-success{background:var(--success);color:#fff;border:none;}
 
-/* LOG ENTRIES */
-.log-entry{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-xl);padding:14px;margin-bottom:12px;}
-.log-entry-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
-.log-date{font-size:15px;font-weight:800;}
-.log-sub{font-size:13px;color:var(--muted);margin-top:2px;}
-.log-procs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
-.log-meta{font-size:13px;color:var(--muted);margin-top:8px;}
-.log-note{font-size:14px;margin-top:8px;line-height:1.4;}
-.log-action-btn{padding:7px 12px;border-radius:var(--r-md);border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-weight:700;white-space:nowrap;}
-.log-edit-btn{color:var(--primary);border-color:var(--primary);background:var(--primary-tint);}
-.btn-pair{display:flex;gap:8px;}
+/* Encounter form — squared grid layout */
+.enc-form{display:flex;flex-direction:column;border-top:1px solid var(--divider);margin-top:10px;}
+.enc-row{display:flex;border-bottom:1px solid var(--divider);}
+.enc-row-last{border-bottom:none;}
+.enc-field{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--divider);min-width:0;}
+.enc-field:last-child{border-right:none;}
+.enc-field-wide{flex:2;}
+.enc-field-full{flex:1;}
+.enc-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);padding:8px 12px 3px;}
+.enc-label .opt{font-weight:400;text-transform:none;letter-spacing:0;}
+.enc-input{width:100%;border:none;border-radius:0;background:var(--surface2);color:var(--text);font-size:15px;padding:6px 12px 10px;min-height:0;-webkit-appearance:none;appearance:none;outline:none;box-shadow:none;resize:none;}
+.enc-input:focus{background:var(--primary-tint);color:var(--text);}
+select.enc-input{background-image:url("image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237a7974' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px;}
+textarea.enc-input{line-height:1.5;padding-bottom:12px;}
 
-/* FILTER TABS */
-.filter-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;}
-.filter-tab{white-space:nowrap;padding:8px 14px;border-radius:var(--r-full);background:var(--surface2);border:1.5px solid var(--border);font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;flex-shrink:0;}
-.filter-tab.active{background:var(--primary-tint);border-color:rgba(13,124,134,.35);color:var(--primary-h);}
-
-/* STATS */
-.stat-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:10px;}
-.stat-name{font-weight:600;}
-.stat-count{font-weight:800;font-size:17px;}
-
-/* EDIT MODAL */
-.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+/* Edit modal */
+.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.5);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
 .modal-overlay.open{opacity:1;pointer-events:all;}
-.modal-sheet{background:var(--surface);border-radius:var(--r-xl) var(--r-xl) 0 0;width:100%;max-width:600px;max-height:90dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s cubic-bezier(.32,.72,0,1);}
+.modal-sheet{background:var(--surface);border-radius:var(--r-xl) var(--r-xl) 0 0;width:100%;max-width:600px;max-height:90dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.25s cubic-bezier(0.32,0.72,0,1);}
 .modal-overlay.open .modal-sheet{transform:translateY(0);}
 .modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px;border-bottom:1px solid var(--divider);flex-shrink:0;}
 .modal-title{font-size:17px;font-weight:700;}
 .modal-close{width:32px;height:32px;border-radius:var(--r-full);background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted);}
-.modal-body{overflow-y:auto;flex:1;padding:16px 20px;}
+.modal-body{overflow-y:auto;flex:1;}
 .modal-footer{display:flex;gap:10px;padding:16px 20px;padding-bottom:calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--divider);flex-shrink:0;}
-.modal-footer .btn{flex:1;}
+.modal-footer .btn{flex:1;justify-content:center;}
+.log-edit-btn{color:var(--primary);border-color:var(--primary);background:var(--primary-tint);}
 
-/* TOAST */
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:88px;background:rgba(24,24,22,.92);color:#fff;padding:11px 18px;border-radius:var(--r-full);font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:.18s;z-index:600;white-space:nowrap;}
-.toast.show{opacity:1;}
+/* Proc selection */
+.proc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+.proc-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:12px 10px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.15s;position:relative;text-align:center;}
+.proc-card:active{transform:scale(0.97);}
+.proc-card.selected{background:var(--primary-tint);border-color:var(--primary);}
+.proc-card-check{position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.proc-card-check svg{width:10px;height:10px;stroke:#fff;stroke-width:2.5;fill:none;opacity:0;}
+.proc-card.selected .proc-card-check{background:var(--primary);border-color:var(--primary);}
+.proc-card.selected .proc-card-check svg{opacity:1;}
+.proc-card-icon{font-size:22px;margin-bottom:4px;}
+.proc-card-name{font-size:12px;font-weight:600;line-height:1.3;color:var(--text);}
+.cat-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin:20px 0 8px;}
+.cat-label:first-child{margin-top:0;}
 
-/* TABS */
-.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 10px calc(8px + env(safe-area-inset-bottom));z-index:200;}
-.tab-btn{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:11px;font-weight:500;padding:8px 4px;cursor:pointer;flex:1;background:none;border:none;-webkit-tap-highlight-color:transparent;transition:color 0.15s;}
-.tab-btn.active{color:var(--primary);}
-.tab-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.tab-icon{display:none;}
+/* Selection bar */
+.selection-bar{background:var(--primary);color:#fff;border-radius:var(--r-xl);padding:14px 16px;margin-bottom:16px;display:none;}
+.selection-bar.visible{display:block;}
+.selection-bar-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.selection-count{font-size:14px;font-weight:700;}
+.selection-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{background:rgba(255,255,255,0.2);border-radius:var(--r-full);padding:3px 10px;font-size:12px;font-weight:600;}
 
-@media(max-width:540px){
-  .row-2,.row-3{grid-template-columns:1fr;}
-  .proc-grid{grid-template-columns:1fr 1fr;}
-}
-/* AUTH */
-.auth-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--primary-tint);border:1.5px solid rgba(13,124,134,.25);border-radius:var(--r-lg);padding:12px 14px;margin-bottom:16px;}
-.auth-banner.signed-in{background:#f0faf4;border-color:rgba(67,122,34,.3);}
-.auth-info{font-size:13px;font-weight:600;}
-.auth-sub{font-size:12px;color:var(--muted);margin-top:2px;}
-.auth-btn{padding:9px 16px;border-radius:var(--r-full);font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid var(--primary);background:var(--primary);color:#fff;white-space:nowrap;}
-.auth-btn.sign-out{background:var(--surface);color:var(--error);border-color:var(--error);}
-.sync-status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;}
-.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--faint);}
-.sync-dot.ok{background:#437a22;}
-.sync-dot.err{background:var(--error);}
-.icon-btn{width:38px;height:38px;border-radius:var(--r-full);border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;color:var(--text);}
-.icon-btn:active{background:var(--surface3);}
-.mic-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:13px;border-radius:var(--r-full);border:1.5px solid var(--primary);background:var(--primary-tint);color:var(--primary);font-size:14px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.15s;margin-bottom:8px;}
-.mic-btn:active{background:var(--primary);color:#fff;}
-.mic-btn.listening{background:var(--primary);color:#fff;animation:pulse 1.2s infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.7;}}
-.voice-panel{display:none;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:8px;}
+/* Shared details */
+#sharedDetails{display:none;}
+
+/* Log entries */
+.log-entry{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px;margin-bottom:12px;}
+.log-entry-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.log-date{font-size:13px;font-weight:700;color:var(--primary);}
+.log-attending{font-size:12px;color:var(--muted);margin-top:2px;}
+.log-procs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+.proc-badge{background:var(--primary-tint);color:var(--primary);border-radius:var(--r-full);padding:3px 10px;font-size:12px;font-weight:600;}
+.log-meta{font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;}
+.log-note{font-size:13px;color:var(--muted);margin-top:6px;font-style:italic;}
+.log-actions{display:flex;gap:6px;margin-top:10px;}
+.log-action-btn{font-size:12px;color:var(--muted);padding:4px 10px;border:1px solid var(--border);border-radius:var(--r-full);background:var(--surface2);}
+.log-action-btn:active{background:var(--surface3);}
+
+/* Filter tabs */
+.filter-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.filter-tab{padding:6px 14px;border-radius:var(--r-full);border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;color:var(--muted);transition:all 0.15s;}
+.filter-tab.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+
+/* Settings */
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--divider);}
+.settings-row:last-child{border-bottom:none;}
+.settings-label{font-size:14px;font-weight:600;}
+.settings-desc{font-size:12px;color:var(--muted);margin-top:2px;}
+
+/* Bottom nav */
+.bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom,0px);}
+.bottomnav-inner{display:flex;max-width:860px;margin:0 auto;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px;cursor:pointer;-webkit-tap-highlight-color:transparent;color:var(--muted);font-size:11px;font-weight:500;transition:color 0.15s;border:none;background:none;}
+.nav-item svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.nav-item.active{color:var(--primary);}
+
+/* Toast */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:var(--r-full);font-size:14px;font-weight:500;opacity:0;transition:all 0.25s;pointer-events:none;z-index:9999;white-space:nowrap;max-width:90vw;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Splash */
+.splash{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;gap:24px;}
+.splash-logo{width:72px;height:72px;border-radius:20px;background:var(--primary);display:flex;align-items:center;justify-content:center;}
+.splash-title{font-size:26px;font-weight:700;}
+.splash-sub{font-size:15px;color:var(--muted);max-width:280px;}
+.splash-actions{display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;}
+
+/* ── STATS SCREEN ── */
+.stat-hero{background:var(--primary);color:#fff;border-radius:var(--r-xl);padding:24px 20px;margin-bottom:16px;text-align:center;}
+.stat-hero-num{font-size:52px;font-weight:700;line-height:1;}
+.stat-hero-label{font-size:14px;opacity:0.85;margin-top:4px;}
+
+.stat-cat-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--divider);}
+.stat-cat-row:last-child{border-bottom:none;}
+.stat-cat-name{font-size:14px;font-weight:600;min-width:110px;}
+.stat-bar-wrap{flex:1;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;}
+.stat-bar-fill{height:100%;background:var(--primary);border-radius:4px;transition:width 0.4s ease;}
+.stat-cat-count{font-size:13px;font-weight:700;color:var(--primary);min-width:32px;text-align:right;}
+
+.stat-proc-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--divider);font-size:14px;}
+.stat-proc-row:last-child{border-bottom:none;}
+.stat-proc-name{color:var(--text);}
+.stat-proc-count{font-weight:700;color:var(--primary);background:var(--primary-tint);border-radius:var(--r-full);padding:2px 10px;font-size:13px;}
+
+.stat-att-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--divider);font-size:14px;}
+.stat-att-row:last-child{border-bottom:none;}
+.stat-att-name{font-weight:600;}
+.stat-att-count{font-weight:700;color:var(--primary);}
+
+.month-bar-row{display:flex;align-items:center;gap:10px;padding:8px 0;}
+.month-label{font-size:12px;color:var(--muted);min-width:52px;}
+.month-bar-wrap{flex:1;height:20px;background:var(--surface3);border-radius:4px;overflow:hidden;position:relative;}
+.month-bar-fill{height:100%;background:var(--primary);border-radius:4px;transition:width 0.4s ease;display:flex;align-items:center;padding-left:8px;}
+.month-bar-num{font-size:11px;font-weight:700;color:#fff;white-space:nowrap;}
+
+/* Apps Script setup card */
+.setup-step{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--divider);}
+.setup-step:last-child{border-bottom:none;}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.step-text{font-size:13px;line-height:1.5;color:var(--text);}
+.step-text strong{font-weight:700;}
+.step-text code{background:var(--surface3);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:12px;}
+.script-box{background:var(--surface3);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;font-family:monospace;font-size:11px;line-height:1.6;color:var(--text);white-space:pre-wrap;word-break:break-all;margin:8px 0;max-height:200px;overflow-y:auto;}
+.mic-icon-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--text);-webkit-tap-highlight-color:transparent;transition:all 0.15s;}
+.mic-icon-btn.listening{background:var(--primary);border-color:var(--primary);color:#fff;animation:mic-pulse 1.2s infinite;}
+@keyframes mic-pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.8;transform:scale(1.08);}}
+.voice-panel{display:none;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:12px;}
 .voice-panel.show{display:block;}
-.voice-transcript{font-size:14px;color:var(--text);line-height:1.5;min-height:48px;margin-bottom:12px;}
-.voice-hint{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.voice-transcript{font-size:14px;color:var(--text);line-height:1.5;min-height:48px;margin-bottom:10px;}
+.voice-hint{font-size:12px;color:var(--muted);margin-bottom:8px;font-style:italic;}
 .voice-actions{display:flex;gap:8px;}
 </style>
 </head>
 <body>
 
-    <div style="position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0px);">
-      <div style="display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 16px;">
-        <div style="display:flex;align-items:center;gap:9px;font-size:17px;font-weight:700;color:var(--text);">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="13" height="18" rx="2"/><path d="M7 8h7M7 12h7M7 16h4"/></svg>
-          PCCM Logbook
+<!-- SPLASH -->
+<div id="splashScreen">
+  <div class="splash">
+    <div class="splash-logo">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+    </div>
+    <div>
+      <div class="splash-title">IP Logbook</div>
+      <div class="splash-sub">Interventional Pulmonology Fellowship Procedure Logger</div>
+    </div>
+    <div class="splash-actions">
+      <button class="btn btn-primary" onclick="signInGoogle()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Sign in with Google
+      </button>
+      <button class="btn btn-sm" onclick="skipAuth()">Use offline (no sync)</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand" onclick="showScreen('log')">
+        <div class="logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2"/></svg>
         </div>
+        <span class="app-title">IP Logbook</span>
+      </div>
+      <div class="topbar-actions">
         <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Toggle theme">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
       </div>
     </div>
-<div class="content">
+  </header>
 
-  <!-- LOG SCREEN -->
-  <div id="screen-log" class="screen active">
-    <!-- AUTH BANNER -->
-    <div class="auth-banner" id="authBanner">
-      <div>
-        <div class="auth-info" id="authInfo">Not signed in</div>
-        <div class="auth-sub">Sign in to sync to your Google Sheet</div>
-      </div>
-      <button class="auth-btn" id="authBtn" onclick="handleAuthBtn()">Sign in with Google</button>
-    </div>
+  <div class="content">
 
-    <button onclick="repeatLastEncounter()" style="width:100%;background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:var(--r-full);padding:13px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px;">📋 Repeat last encounter</button>
-    <button class="mic-btn" id="micBtn" onclick="toggleVoice()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-      🎤 Tap to dictate encounter
-    </button>
-    <div class="voice-panel" id="voicePanel">
-      <div class="voice-hint">Speak naturally — e.g. <em>"Thoracentesis, bedside ICU, Dr. Kalchiem-Dekel, performed with supervision, successful, large pleural effusion"</em></div>
-      <div class="voice-transcript" id="voiceTranscript">Listening…</div>
-      <div class="voice-actions">
-        <button class="btn btn-primary btn-sm" onclick="applyTranscript()">✓ Apply to form</button>
-        <button class="btn btn-ghost btn-sm" onclick="clearVoice()">✕ Clear</button>
-      </div>
-    </div>
-
-    <div class="card" style="padding:14px 14px 12px;">
-      <div class="card-title" style="margin-bottom:10px;">Patient &amp; Encounter</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-        <div class="field" style="margin-bottom:0;"><label>Date</label><input id="encDate" type="date" style="min-height:42px;"/></div>
-        <div class="field" style="margin-bottom:0;"><label>Initials <span class="opt">(opt)</span></label><input id="encInitials" type="text" maxlength="10" placeholder="J.D." autocomplete="off" style="min-height:42px;"/></div>
-      </div>
-
-      <!-- Row 2: location / attending -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:0;">
-        <div class="field" style="margin-bottom:0;"><label>Location</label>
-          <select id="encLocation">
-            <option>Bedside/ICU</option>
-            <option>MICU procedure room</option>
-            <option>Bronchoscopy suite</option>
-            <option>OR</option>
-            <option>Stepdown/floor</option>
-            <option>ED</option>
-            <option>Other</option>
-          </select>
+    <!-- LOG SCREEN -->
+    <div class="screen active" id="screen-log">
+      <div class="section-head">
+        <div>
+          <div class="section-title">New encounter</div>
+          <div class="section-sub">Fill in patient details, then select procedures</div>
         </div>
-        <div class="field"><label>Attending</label>
-          <select id="encAttending">
-            <option value="">— Select attending —</option>
-            <option value="Agrawal, Abhinav">Agrawal, Abhinav</option>
-            <option value="Basist, Madeleine">Basist, Madeleine</option>
-            <option value="Chang, Anna">Chang, Anna</option>
-            <option value="Davidov, Iosif">Davidov, Iosif</option>
-            <option value="Derfel, Juliana">Derfel, Juliana</option>
-            <option value="Dhar, Sean">Dhar, Sean</option>
-            <option value="Duenas, Sean">Duenas, Sean</option>
-            <option value="Durst, Matthew">Durst, Matthew</option>
-            <option value="Emeagwali, Nkiruka">Emeagwali, Nkiruka</option>
-            <option value="Fryman, Craig">Fryman, Craig</option>
-            <option value="Gottesman, Eric">Gottesman, Eric</option>
-            <option value="Habibullah, Junaid">Habibullah, Junaid</option>
-            <option value="Hahn, Stella">Hahn, Stella</option>
-            <option value="Hamad, Mohammed">Hamad, Mohammed</option>
-            <option value="Hasan, Zubair">Hasan, Zubair</option>
-            <option value="Hessel, Justina">Hessel, Justina</option>
-            <option value="Hilewitz, Ayelet">Hilewitz, Ayelet</option>
-            <option value="Iakovou, Annamaria">Iakovou, Annamaria</option>
-            <option value="Khanijo, Sameer">Khanijo, Sameer</option>
-            <option value="Kim, Adam">Kim, Adam</option>
-            <option value="Korotun, Maksim">Korotun, Maksim</option>
-            <option value="Lisker, Gita">Lisker, Gita</option>
-            <option value="MacDonald, Zachary">MacDonald, Zachary</option>
-            <option value="Makaryus, Mina">Makaryus, Mina</option>
-            <option value="Mayo, Paul">Mayo, Paul</option>
-            <option value="Melamud, Aleksandr">Melamud, Aleksandr</option>
-            <option value="Millwala, Salman">Millwala, Salman</option>
-            <option value="Mohanka, Manish">Mohanka, Manish</option>
-            <option value="Moonian, Andrew">Moonian, Andrew</option>
-            <option value="Morim, Olga">Morim, Olga</option>
-            <option value="Murn, Michael">Murn, Michael</option>
-            <option value="Narasimhan, Mangala">Narasimhan, Mangala</option>
-            <option value="Palmares, Francine">Palmares, Francine</option>
-            <option value="Pierce, Matthew">Pierce, Matthew</option>
-            <option value="Prabhakar, Laxminarayan">Prabhakar, Laxminarayan</option>
-            <option value="Quintero, Luis">Quintero, Luis</option>
-            <option value="Ravishankar, Shreyas">Ravishankar, Shreyas</option>
-            <option value="Sfakianos, Maria">Sfakianos, Maria</option>
-            <option value="Shah, Dimple">Shah, Dimple</option>
-            <option value="Shaikh, Aman">Shaikh, Aman</option>
-            <option value="Singas, Effie">Singas, Effie</option>
-            <option value="Smith, Kira">Smith, Kira</option>
-            <option value="Tafreshi, Mehran">Tafreshi, Mehran</option>
-            <option value="Talwar, Arunabh">Talwar, Arunabh</option>
-            <option value="Tomanelli, Toni Ann">Tomanelli, Toni Ann</option>
-            <option value="Walsh, Danielle">Walsh, Danielle</option>
-            <option value="Wang, Janice">Wang, Janice</option>
-            <option value="Weinstein, Tatiana">Weinstein, Tatiana</option>
-            <option value="Wong, Kelvin">Wong, Kelvin</option>
-            <option value="Zaidi, Gulrukh">Zaidi, Gulrukh</option>
-          </select>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="mic-icon-btn" id="micBtn" onclick="toggleVoice()" aria-label="Dictate">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+          <button class="repeat-btn" id="repeatBtn" style="display:none" onclick="repeatLast()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          Repeat last
+        </button>
         </div>
       </div>
+
+      <!-- VOICE PANEL -->
+      <div class="voice-panel" id="voicePanel">
+        <div class="voice-hint">e.g. <em>"EBUS, Dr. Kalchiem-Dekel, bronch suite, independently, successful"</em></div>
+        <div class="voice-transcript" id="voiceTranscript">Listening…</div>
+        <div class="voice-actions">
+          <button style="padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;border:none;background:var(--primary);color:#fff;cursor:pointer;" onclick="applyTranscript()">✓ Apply</button>
+          <button style="padding:8px 16px;border-radius:8px;font-size:14px;border:1.5px solid var(--border);background:none;color:var(--text);cursor:pointer;" onclick="clearVoice()">✕ Clear</button>
+        </div>
+      </div>
+
+      <!-- Patient & Encounter details — TOP -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="card-title" style="padding:14px 16px 0;">Patient &amp; Encounter</div>
+        <div class="enc-form">
+          <div class="enc-row">
+            <div class="enc-field">
+              <div class="enc-label">Date</div>
+              <input type="date" id="encDate" class="enc-input"/>
+            </div>
+            <div class="enc-field">
+              <div class="enc-label">Initials <span class="opt">(opt)</span></div>
+              <input type="text" id="encInitials" class="enc-input" placeholder="J.D." maxlength="10" style="text-transform:uppercase;"/>
+            </div>
+            <div class="enc-field">
+              <div class="enc-label">MRN <span class="opt">(opt)</span></div>
+              <input type="text" id="encMRN" class="enc-input" placeholder="1234567" inputmode="numeric"/>
+            </div>
+          </div>
+          <div class="enc-row">
+            <div class="enc-field enc-field-wide">
+              <div class="enc-label">Attending</div>
+              <select id="encAttending" class="enc-input">
+                <option value="">— Select —</option>
+                <option value="Robert P. Lee">Robert P. Lee</option>
+                <option value="Or Kalchiem-Dekel">Or Kalchiem-Dekel</option>
+                <option value="Catherine Oberg">Catherine Oberg</option>
+                <option value="Rastko Rakocevic">Rastko Rakocevic</option>
+                <option value="Mohit Chawla">Mohit Chawla</option>
+              </select>
+            </div>
+            <div class="enc-field" style="flex:1.4;">
+              <div class="enc-label">Location</div>
+              <select id="encLocation" class="enc-input">
+                <option value="Bronchoscopy suite">Bronch suite</option>
+                <option value="OR">OR</option>
+                <option value="Bedside">Bedside</option>
+                <option value="ICU">ICU</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Procedure selection -->
+      <div class="card">
+        <div class="card-title">Select Procedures</div>
+        <div class="section-sub" style="margin-bottom:14px;font-size:12px;">Tap one or more — all share this encounter</div>
+
+        <div class="selection-bar" id="selectionBar">
+          <div class="selection-bar-top">
+            <span class="selection-count"><span id="selectionCount">0</span> selected</span>
+            <button onclick="clearSelection()" style="color:rgba(255,255,255,0.8);font-size:13px;font-weight:600;">Clear</button>
+          </div>
+          <div class="selection-chips" id="selectionChips"></div>
+        </div>
+
+        <div class="cat-label">🫁 Bronchoscopy</div>
+        <div class="proc-grid">
+          <div class="proc-card" data-proc="Flexible bronchoscopy" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🔬</div><div class="proc-card-name">Flexible bronchoscopy</div></div>
+          <div class="proc-card" data-proc="Rigid bronchoscopy" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🦾</div><div class="proc-card-name">Rigid bronchoscopy</div></div>
+          <div class="proc-card" data-proc="EBUS-TBNA" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🔊</div><div class="proc-card-name">EBUS-TBNA</div></div>
+          <div class="proc-card" data-proc="Radial EBUS" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🎯</div><div class="proc-card-name">Radial EBUS</div></div>
+          <div class="proc-card" data-proc="Endobronchial biopsy" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🤏</div><div class="proc-card-name">Endobronchial biopsy</div></div>
+          <div class="proc-card" data-proc="Transbronchial biopsy" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🪡</div><div class="proc-card-name">Transbronchial biopsy</div></div>
+          <div class="proc-card" data-proc="Forceps biopsy" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🗜️</div><div class="proc-card-name">Forceps biopsy</div></div>
+          <div class="proc-card" data-proc="Brush biopsy" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🖌️</div><div class="proc-card-name">Brush biopsy</div></div>
+          <div class="proc-card" data-proc="Foreign body removal" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🥍</div><div class="proc-card-name">Foreign body removal</div></div>
+          <div class="proc-card" data-proc="Fiducial placement" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">📍</div><div class="proc-card-name">Fiducial placement</div></div>
+          <div class="proc-card" data-proc="Protected specimen brush" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🧫</div><div class="proc-card-name">Protected specimen brush</div></div>
+          <div class="proc-card" data-proc="Cryobiopsy" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">❄️</div><div class="proc-card-name">Cryobiopsy</div></div>
+          <div class="proc-card" data-proc="BAL" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🧪</div><div class="proc-card-name">BAL</div></div>
+          <div class="proc-card" data-proc="Robotic navigation bronchoscopy" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🤖</div><div class="proc-card-name">Robotic navigation</div></div>
+          <div class="proc-card" data-proc="Electromagnetic navigation bronchoscopy" data-cat="Bronchoscopy" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🧭</div><div class="proc-card-name">EM navigation</div></div>
+        </div>
+
+        <div class="cat-label">🌬️ Airway</div>
+        <div class="proc-grid">
+          <div class="proc-card" data-proc="Airway dilation" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">↔️</div><div class="proc-card-name">Airway dilation</div></div>
+          <div class="proc-card" data-proc="Balloon bronchoplasty" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🎈</div><div class="proc-card-name">Balloon bronchoplasty</div></div>
+          <div class="proc-card" data-proc="Stent placement" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🗑️</div><div class="proc-card-name">Stent placement</div></div>
+          <div class="proc-card" data-proc="Stent removal" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🪛</div><div class="proc-card-name">Stent removal</div></div>
+          <div class="proc-card" data-proc="Endobronchial valve" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">☂️</div><div class="proc-card-name">Endobronchial valve</div></div>
+          <div class="proc-card" data-proc="Electrocautery" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">⚡</div><div class="proc-card-name">Electrocautery</div></div>
+          <div class="proc-card" data-proc="APC" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🔥</div><div class="proc-card-name">APC</div></div>
+          <div class="proc-card" data-proc="Laser therapy" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🔴</div><div class="proc-card-name">Laser therapy</div></div>
+          <div class="proc-card" data-proc="Cryotherapy" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🧊</div><div class="proc-card-name">Cryotherapy</div></div>
+          <div class="proc-card" data-proc="Bronchial thermoplasty" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🌡️</div><div class="proc-card-name">Bronchial thermoplasty</div></div>
+          <div class="proc-card" data-proc="PDT" data-cat="Airway" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">💡</div><div class="proc-card-name">PDT</div></div>
+        </div>
+
+        <div class="cat-label">🤿 Airway Management</div>
+        <div class="proc-grid">
+          <div class="proc-card" data-proc="Tracheostomy" data-cat="Airway Management" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">✂️</div><div class="proc-card-name">Tracheostomy</div></div>
+          <div class="proc-card" data-proc="Bronchoscopic intubation" data-cat="Airway Management" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">😮‍💨</div><div class="proc-card-name">Bronchoscopic intubation</div></div>
+        </div>
+
+        <div class="cat-label">🫧 Pleural</div>
+        <div class="proc-grid">
+          <div class="proc-card" data-proc="Thoracentesis" data-cat="Pleural" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">💧</div><div class="proc-card-name">Thoracentesis</div></div>
+          <div class="proc-card" data-proc="Medical thoracoscopy" data-cat="Pleural" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🔭</div><div class="proc-card-name">Medical thoracoscopy</div></div>
+          <div class="proc-card" data-proc="Chest tube placement" data-cat="Pleural" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🩹</div><div class="proc-card-name">Chest tube placement</div></div>
+          <div class="proc-card" data-proc="Tunneled pleural catheter" data-cat="Pleural" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🔗</div><div class="proc-card-name">Tunneled pleural catheter</div></div>
+          <div class="proc-card" data-proc="Pleurodesis" data-cat="Pleural" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🔒</div><div class="proc-card-name">Pleurodesis</div></div>
+          <div class="proc-card" data-proc="Pleural biopsy" data-cat="Pleural" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">🧬</div><div class="proc-card-name">Pleural biopsy</div></div>
+          <div class="proc-card" data-proc="US-guided thoracentesis" data-cat="Pleural" onclick="toggleProc(this)"><div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div><div class="proc-card-icon">📡</div><div class="proc-card-name">US-guided thoracentesis</div></div>
+        </div>
+      </div>
+
+      <!-- Role / Outcome / Notes -->
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="card-title" style="padding:14px 16px 0;">Details</div>
+        <div class="enc-form">
+          <div class="enc-row">
+            <div class="enc-field">
+              <div class="enc-label">Role</div>
+              <select id="encRole" class="enc-input">
+                <option value="Primary operator" selected>Primary operator</option>
+                <option value="Assisted">Assisted</option>
+                <option value="Observed">Observed</option>
+              </select>
+            </div>
+            <div class="enc-field">
+              <div class="enc-label">Outcome <span class="opt">(opt)</span></div>
+              <select id="encOutcome" class="enc-input">
+                <option value="">— Select —</option>
+                <option value="Successful">Successful</option>
+                <option value="Partially successful">Partial success</option>
+                <option value="Unsuccessful">Unsuccessful</option>
+                <option value="Complication">Complication</option>
+              </select>
+            </div>
+          </div>
+          <div class="enc-row enc-row-last">
+            <div class="enc-field enc-field-full">
+              <div class="enc-label">Findings / Notes <span class="opt">(opt)</span></div>
+              <textarea id="encNotes" class="enc-input" rows="3" placeholder="Key findings, complications, teaching points…"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save button -->
+      <div style="padding-bottom:8px;">
+        <button class="btn btn-primary" id="saveBtn" onclick="saveEncounter()" style="width:100%;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Save encounter
+        </button>
+      </div>
     </div>
 
-    <!-- PROCEDURE SELECTION -->
-    <div class="card">
-      <div class="card-title">Procedures</div>
-      <div id="procContainer"></div>
+    <!-- HISTORY SCREEN -->
+    <div class="screen" id="screen-history">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Procedure log</div>
+          <div class="section-sub" id="procCount">0 procedures</div>
+        </div>
+        <button class="btn btn-sm" onclick="exportCSV()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+      </div>
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="All" onclick="setFilter(this)">All</button>
+        <button class="filter-tab" data-filter="Bronchoscopy" onclick="setFilter(this)">Bronchoscopy</button>
+        <button class="filter-tab" data-filter="Pleural" onclick="setFilter(this)">Pleural</button>
+        <button class="filter-tab" data-filter="Airway" onclick="setFilter(this)">Airway</button>
+        <button class="filter-tab" data-filter="Airway Management" onclick="setFilter(this)">Airway Mgmt</button>
+      </div>
+      <div id="logList"></div>
     </div>
 
-    <!-- SELECTED + BOTTOM FIELDS -->
-    <div class="card">
-      <div class="card-title">Selected procedures</div>
-      <div class="badge-wrap" id="selectedWrap"><span style="color:var(--muted);font-size:14px;">None selected.</span></div>
+    <!-- STATS SCREEN -->
+    <div class="screen" id="screen-stats">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Statistics</div>
+          <div class="section-sub">Computed from your local logs</div>
+        </div>
+      </div>
 
-      <div style="margin-top:20px;">
-        <!-- Row: role / success -->
-        <div class="row-2">
-          <div class="field"><label>Role</label>
-            <select id="encRole">
+      <!-- Hero total -->
+      <div class="stat-hero" id="statsHero">
+        <div class="stat-hero-num" id="statTotal">0</div>
+        <div class="stat-hero-label">Total procedures logged</div>
+      </div>
+
+      <!-- By category -->
+      <div class="card">
+        <div class="card-title">By Category</div>
+        <div id="statsByCategory"></div>
+      </div>
+
+      <!-- By procedure -->
+      <div class="card">
+        <div class="card-title">By Procedure</div>
+        <div id="statsByProc"></div>
+      </div>
+
+      <!-- By attending -->
+      <div class="card">
+        <div class="card-title">By Attending</div>
+        <div id="statsByAttending"></div>
+      </div>
+
+      <!-- By month -->
+      <div class="card">
+        <div class="card-title">By Month</div>
+        <div id="statsByMonth"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS SCREEN -->
+    <div class="screen" id="screen-settings">
+      <div class="section-head"><div class="section-title">Settings</div></div>
+
+      <!-- Account -->
+      <div class="card">
+        <div class="card-title">Account</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label" id="accountLabel">Not connected</div>
+            <div class="settings-desc" id="accountDesc">Sign in to sync to Google Sheets</div>
+          </div>
+          <button class="btn btn-sm btn-primary" id="signInBtn" onclick="signInGoogle()">Sign in</button>
+        </div>
+      </div>
+
+      <!-- Google Apps Script setup -->
+      <div class="card" id="appsScriptCard">
+        <div class="card-title">Google Sheets Sync Setup</div>
+        <div class="settings-desc" style="margin-bottom:12px;">Paste your Apps Script Web App URL below to enable multi-tab sync to Google Sheets. <strong>One-time setup.</strong></div>
+        <div class="field">
+          <label>Apps Script URL</label>
+          <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/…/exec" onchange="saveSettings()"/>
+        </div>
+        <details style="margin-top:8px;">
+          <summary style="font-size:13px;font-weight:600;cursor:pointer;color:var(--primary);">▶ How to set up (tap to expand)</summary>
+          <div style="margin-top:12px;">
+            <div class="setup-step"><div class="step-num">1</div><div class="step-text">Go to <strong>script.google.com</strong> → New project</div></div>
+            <div class="setup-step"><div class="step-num">2</div><div class="step-text">Delete any existing code, paste the script below</div></div>
+            <div class="setup-step"><div class="step-num">3</div><div class="step-text">Click <strong>Deploy → New deployment → Web app</strong><br>Set <em>Execute as: Me</em> · <em>Who has access: Anyone</em></div></div>
+            <div class="setup-step"><div class="step-num">4</div><div class="step-text">Copy the Web App URL and paste it above</div></div>
+            <div class="setup-step"><div class="step-num">5</div><div class="step-text">First time: the script will ask for Google Sheets permission — approve it</div></div>
+            <div style="margin-top:10px;">
+              <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;">APPS SCRIPT CODE (copy all):</div>
+              <div class="script-box" id="scriptBox">Loading…</div>
+              <button class="btn btn-sm" style="margin-top:6px;" onclick="copyScript()">📋 Copy script</button>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Defaults -->
+      <div class="card">
+        <div class="card-title">Defaults</div>
+        <div class="settings-row">
+          <div><div class="settings-label">Default attending</div><div class="settings-desc">Pre-selected on each new encounter</div></div>
+          <select id="defaultAttending" onchange="saveSettings();applyDefaultsLive()" style="max-width:180px;min-height:40px;font-size:13px;">
+            <option value="">— None —</option>
+            <option value="Robert P. Lee">Robert P. Lee</option>
+            <option value="Or Kalchiem-Dekel">Or Kalchiem-Dekel</option>
+            <option value="Catherine Oberg">Catherine Oberg</option>
+            <option value="Rastko Rakocevic">Rastko Rakocevic</option>
+            <option value="Mohit Chawla">Mohit Chawla</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Default location</div></div>
+          <select id="defaultLocation" onchange="saveSettings()" style="max-width:180px;min-height:40px;font-size:13px;">
+            <option value="Bronchoscopy suite">Bronchoscopy suite</option>
+            <option value="OR">OR</option>
+            <option value="Bedside">Bedside</option>
+            <option value="ICU">ICU</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Sheet name</div><div class="settings-desc">Name of the Google Sheet in your Drive</div></div>
+          <input type="text" id="sheetName" value="IP Fellowship Log" onchange="saveSettings()" style="max-width:180px;min-height:40px;font-size:13px;"/>
+        </div>
+      </div>
+
+      <!-- Data -->
+      <div class="card">
+        <div class="card-title">Data</div>
+        <div class="settings-row">
+          <div><div class="settings-label">Download Excel (.xlsx)</div><div class="settings-desc">Multi-tab: All, By Category, By Attending, Monthly</div></div>
+          <button class="btn btn-sm" onclick="exportXLSX()">Download</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Download CSV (plain)</div><div class="settings-desc">Simple flat file, works everywhere</div></div>
+          <button class="btn btn-sm" onclick="exportCSV()">Download</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Clear all local data</div><div class="settings-desc">Removes all locally stored procedures</div></div>
+          <button class="btn btn-sm btn-danger" onclick="clearAllData()">Clear</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <nav class="bottomnav">
+    <div class="bottomnav-inner">
+      <button class="nav-item active" data-screen="log" onclick="showScreen('log')">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" style="stroke-width:2.5;"/></svg>
+        Log
+      </button>
+      <button class="nav-item" data-screen="history" onclick="showScreen('history')">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        History
+      </button>
+      <button class="nav-item" data-screen="stats" onclick="showScreen('stats')">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Stats
+      </button>
+      <button class="nav-item" data-screen="settings" onclick="showScreen('settings')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </div>
+  </nav>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal" onclick="closeEditModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title">Edit Encounter</div>
+      <button class="modal-close" onclick="closeEditModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="enc-form" style="border-top:none;">
+        <div class="enc-row">
+          <div class="enc-field">
+            <div class="enc-label">Date</div>
+            <input type="date" id="editDate" class="enc-input"/>
+          </div>
+          <div class="enc-field">
+            <div class="enc-label">Initials</div>
+            <input type="text" id="editInitials" class="enc-input" placeholder="J.D." maxlength="10"/>
+          </div>
+          <div class="enc-field">
+            <div class="enc-label">MRN</div>
+            <input type="text" id="editMRN" class="enc-input" placeholder="1234567" inputmode="numeric"/>
+          </div>
+        </div>
+        <div class="enc-row">
+          <div class="enc-field enc-field-wide">
+            <div class="enc-label">Attending</div>
+            <select id="editAttending" class="enc-input">
+              <option value="">— Select —</option>
+              <option>Robert P. Lee</option>
+              <option>Or Kalchiem-Dekel</option>
+              <option>Catherine Oberg</option>
+              <option>Rastko Rakocevic</option>
+              <option>Mohit Chawla</option>
+            </select>
+          </div>
+          <div class="enc-field">
+            <div class="enc-label">Location</div>
+            <select id="editLocation" class="enc-input">
+              <option>Bronchoscopy suite</option>
+              <option>OR</option>
+              <option>Bedside</option>
+              <option>ICU</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="enc-row">
+          <div class="enc-field">
+            <div class="enc-label">Role</div>
+            <select id="editRole" class="enc-input">
               <option>Primary operator</option>
               <option>Assisted</option>
               <option>Observed</option>
             </select>
           </div>
-          <div class="field"><label>Outcome</label>
-            <select id="encOutcome">
+          <div class="enc-field">
+            <div class="enc-label">Outcome</div>
+            <select id="editOutcome" class="enc-input">
               <option value="">— Select —</option>
               <option>Successful</option>
               <option>Partially successful</option>
@@ -328,185 +686,20 @@ textarea{min-height:80px;resize:vertical;}
             </select>
           </div>
         </div>
-
-        <!-- Row: indication / complications -->
-        <div class="row-2">
-          <div class="field"><label>Indication <span class="opt">(optional)</span></label><input id="encIndication" type="text" placeholder="e.g. respiratory failure, effusion"/></div>
-          <div class="field"><label>Complications <span class="opt">(optional)</span></label><input id="encComplications" type="text" placeholder="None / pneumothorax / bleeding..."/></div>
+        <div class="enc-row enc-row-last">
+          <div class="enc-field enc-field-full">
+            <div class="enc-label">Findings / Notes</div>
+            <textarea id="editNotes" class="enc-input" rows="3" placeholder="Key findings, complications, teaching points…"></textarea>
+          </div>
         </div>
-
-        <div class="field"><label>Notes <span class="opt">(optional)</span></label><textarea id="encNotes" placeholder="Key findings, teaching points, difficulty..."></textarea></div>
       </div>
-
-      <div class="btn-row">
-        <button class="btn btn-ghost" onclick="clearSelection()">Clear</button>
-        <button class="btn btn-primary" id="saveBtn" onclick="saveEncounter()">Save encounter</button>
+      <div style="padding:16px;">
+        <div class="enc-label" style="margin-bottom:8px;">Procedures</div>
+        <div id="editProcList" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
       </div>
-    </div>
-  </div>
-
-  <!-- HISTORY SCREEN -->
-  <div id="screen-history" class="screen">
-    <div class="card">
-      <div class="card-title">History</div>
-      <div class="filter-tabs" id="filterTabs"></div>
-      <div id="logList"><span style="color:var(--muted);">No encounters logged yet.</span></div>
-    </div>
-  </div>
-
-  <!-- STATS SCREEN -->
-  <div id="screen-stats" class="screen">
-    <div class="hero" style="margin-bottom:16px;">
-      <div class="metrics">
-        <div class="metric"><div class="metric-num" id="heroEnc">0</div><div class="metric-label">Encounters</div></div>
-        <div class="metric"><div class="metric-num" id="heroProc">0</div><div class="metric-label">Procedures</div></div>
-        <div class="metric"><div class="metric-num" id="heroMonth">0</div><div class="metric-label">This month</div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">Procedure counts</div>
-      <div id="statList"><span style="color:var(--muted);">No data yet.</span></div>
-    </div>
-  </div>
-
-  <!-- SETTINGS SCREEN -->
-  <div id="screen-settings" class="screen">
-    <div class="card">
-      <div class="card-title">Defaults</div>
-      <div class="field"><label>Default attending</label>
-        <select id="settingsAttending">
-          <option value="">— None —</option>
-        </select>
-      </div>
-      <button class="btn btn-primary btn-full" onclick="saveSettings()">Save settings</button>
-    </div>
-    <div class="card">
-      <div class="card-title">Export</div>
-      <div class="btn-row">
-        <button class="btn btn-ghost" onclick="exportCsv()">Export CSV</button>
-        <button class="btn btn-ghost" onclick="exportJson()">Export JSON</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">Google Sheets sync</div>
-      <div class="auth-banner" id="settingsAuthBanner" style="margin-bottom:14px;">
-        <div>
-          <div class="auth-info" id="settingsAuthInfo">Not signed in</div>
-          <div class="auth-sub" id="settingsAuthSub">Sign in to enable automatic sync to your own Google Drive</div>
-        </div>
-        <button class="auth-btn" id="settingsAuthBtn" onclick="handleAuthBtn()">Sign in</button>
-      </div>
-      <div class="field"><label>Sheet name <span class="opt">(default: PCCM Logbook)</span></label><input id="settingsSheet" type="text" placeholder="PCCM Logbook"/></div>
-      <button class="btn btn-primary btn-full" onclick="saveGoogleSettings()">Save settings</button>
-    </div>
-  </div>
-
-</div>
-
-<!-- TABS -->
-<div class="tabs">
-  <button class="tab-btn active" onclick="showScreen('log',this)">
-    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-width="2.5"/></svg>
-    Log
-  </button>
-  <button class="tab-btn" onclick="showScreen('history',this)">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-    History
-  </button>
-  <button class="tab-btn" onclick="showScreen('stats',this)">
-    <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-    Stats
-  </button>
-  <button class="tab-btn" onclick="showScreen('settings',this)">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    Settings
-  </button>
-</div>
-
-<!-- EDIT MODAL -->
-<div class="modal-overlay" id="editModal" onclick="closeEditModal(event)">
-  <div class="modal-sheet">
-    <div class="modal-header">
-      <div class="modal-title">Edit Encounter</div>
-      <button class="modal-close" onclick="closeEditModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="row-3">
-        <div class="field"><label>Date</label><input id="editDate" type="date"/></div>
-        <div class="field"><label>Initials</label><input id="editInitials" type="text" maxlength="10" placeholder="J.D."/></div>
-        
-      </div>
-      <div class="row-2">
-        <div class="field"><label>Location</label>
-          <select id="editLocation">
-            <option>Bedside/ICU</option><option>MICU procedure room</option><option>Bronchoscopy suite</option><option>OR</option><option>Stepdown/floor</option><option>ED</option><option>Other</option>
-          </select>
-        </div>
-        <div class="field"><label>Attending</label><select id="editAttending"><option value="">— Select attending —</option>
-            <option value="Agrawal, Abhinav">Agrawal, Abhinav</option>
-            <option value="Basist, Madeleine">Basist, Madeleine</option>
-            <option value="Chang, Anna">Chang, Anna</option>
-            <option value="Davidov, Iosif">Davidov, Iosif</option>
-            <option value="Derfel, Juliana">Derfel, Juliana</option>
-            <option value="Dhar, Sean">Dhar, Sean</option>
-            <option value="Duenas, Sean">Duenas, Sean</option>
-            <option value="Durst, Matthew">Durst, Matthew</option>
-            <option value="Emeagwali, Nkiruka">Emeagwali, Nkiruka</option>
-            <option value="Fryman, Craig">Fryman, Craig</option>
-            <option value="Gottesman, Eric">Gottesman, Eric</option>
-            <option value="Habibullah, Junaid">Habibullah, Junaid</option>
-            <option value="Hahn, Stella">Hahn, Stella</option>
-            <option value="Hamad, Mohammed">Hamad, Mohammed</option>
-            <option value="Hasan, Zubair">Hasan, Zubair</option>
-            <option value="Hessel, Justina">Hessel, Justina</option>
-            <option value="Hilewitz, Ayelet">Hilewitz, Ayelet</option>
-            <option value="Iakovou, Annamaria">Iakovou, Annamaria</option>
-            <option value="Khanijo, Sameer">Khanijo, Sameer</option>
-            <option value="Kim, Adam">Kim, Adam</option>
-            <option value="Korotun, Maksim">Korotun, Maksim</option>
-            <option value="Lisker, Gita">Lisker, Gita</option>
-            <option value="MacDonald, Zachary">MacDonald, Zachary</option>
-            <option value="Makaryus, Mina">Makaryus, Mina</option>
-            <option value="Mayo, Paul">Mayo, Paul</option>
-            <option value="Melamud, Aleksandr">Melamud, Aleksandr</option>
-            <option value="Millwala, Salman">Millwala, Salman</option>
-            <option value="Mohanka, Manish">Mohanka, Manish</option>
-            <option value="Moonian, Andrew">Moonian, Andrew</option>
-            <option value="Morim, Olga">Morim, Olga</option>
-            <option value="Murn, Michael">Murn, Michael</option>
-            <option value="Narasimhan, Mangala">Narasimhan, Mangala</option>
-            <option value="Palmares, Francine">Palmares, Francine</option>
-            <option value="Pierce, Matthew">Pierce, Matthew</option>
-            <option value="Prabhakar, Laxminarayan">Prabhakar, Laxminarayan</option>
-            <option value="Quintero, Luis">Quintero, Luis</option>
-            <option value="Ravishankar, Shreyas">Ravishankar, Shreyas</option>
-            <option value="Sfakianos, Maria">Sfakianos, Maria</option>
-            <option value="Shah, Dimple">Shah, Dimple</option>
-            <option value="Shaikh, Aman">Shaikh, Aman</option>
-            <option value="Singas, Effie">Singas, Effie</option>
-            <option value="Smith, Kira">Smith, Kira</option>
-            <option value="Tafreshi, Mehran">Tafreshi, Mehran</option>
-            <option value="Talwar, Arunabh">Talwar, Arunabh</option>
-            <option value="Tomanelli, Toni Ann">Tomanelli, Toni Ann</option>
-            <option value="Walsh, Danielle">Walsh, Danielle</option>
-            <option value="Wang, Janice">Wang, Janice</option>
-            <option value="Weinstein, Tatiana">Weinstein, Tatiana</option>
-            <option value="Wong, Kelvin">Wong, Kelvin</option>
-            <option value="Zaidi, Gulrukh">Zaidi, Gulrukh</option></select></div>
-      </div>
-      <div class="row-2">
-        <div class="field"><label>Role</label><select id="editRole"><option>Primary operator</option><option>Assisted</option><option>Observed</option></select></div>
-        <div class="field"><label>Outcome</label><select id="editOutcome"><option value="">— Select —</option><option>Successful</option><option>Partially successful</option><option>Unsuccessful</option><option>Complication</option></select></div>
-      </div>
-      <div class="row-2">
-        <div class="field"><label>Indication</label><input id="editIndication" type="text" placeholder=""/></div>
-        <div class="field"><label>Complications</label><input id="editComplications" type="text" placeholder=""/></div>
-      </div>
-      <div class="field"><label>Notes</label><textarea id="editNotes"></textarea></div>
-      <div style="padding:10px 0 4px;"><div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Procedures</div><div id="editProcBadges" style="display:flex;flex-wrap:wrap;gap:8px;"></div></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveEdit()">Save changes</button>
     </div>
   </div>
@@ -515,528 +708,625 @@ textarea{min-height:80px;resize:vertical;}
 <div class="toast" id="toast"></div>
 
 <script>
-const CATS = {
-  'Airway': [
-    ['Endotracheal intubation','🫁'],
-    ['Bronchoscopic intubation','🔦'],
-    ['Percutaneous tracheostomy','✂️']
-  ],
-  'Vascular': [
-    ['Central venous catheter','🧵'],
-    ['Arterial line','📈'],
-    ['Dialysis catheter','🩸'],
-    ['Pulmonary artery catheter','🎈'],
-    ['Transvenous pacemaker insertion','⚡'],
-    ['Intraosseous (IO)','🪛']
-  ],
-  'Pleural': [
-    ['Thoracentesis','💉'],
-    ['Pigtail chest tube','🌀'],
-    ['Surgical chest tube','🔪'],
-    ['Tunneled pleural catheter','🔗']
-  ],
-  'Bronchoscopy': [
-    ['Flexible bronchoscopy','🔭'],
-    ['BAL','🧪'],
-    ['Endobronchial biopsy','🤏'],
-    ['Transbronchial biopsy','🗜️'],
-    ['EBUS-TBNA','📡']
-  ],
-  'Other ICU': [
-    ['Paracentesis','🫙'],
-    ['Lumbar puncture','🦴'],
-    ['Cardioversion','💥'],
-    ['Pericardiocentesis','❤️'],
-    ['Transesophageal echocardiogram','🫀'],
-    ['Nasogastric tube','👃']
-  ]
+const APPS_SCRIPT_CODE = `// IP Logbook — Google Apps Script
+// Deploy as Web App: Execute as Me, Anyone can access
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss = getOrCreateSpreadsheet(data.sheetName || 'IP Fellowship Log');
+    var action = data.action || 'append';
+    if (action === 'append') {
+      appendRows(ss, data.rows);
+    } else if (action === 'rebuild') {
+      rebuildAllSheets(ss, data.rows);
+    }
+    return ContentService.createTextOutput(JSON.stringify({status:'ok'})).setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({status:'error',message:err.toString()})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({status:'ok',message:'IP Logbook Apps Script running'})).setMimeType(ContentService.MimeType.JSON);
+}
+
+function getOrCreateSpreadsheet(name) {
+  var files = DriveApp.getFilesByName(name);
+  if (files.hasNext()) {
+    return SpreadsheetApp.open(files.next());
+  }
+  return SpreadsheetApp.create(name);
+}
+
+var HEADERS = ['Encounter ID','Date','Initials','MRN','Procedure','Category','Attending','Location','Role','Outcome','Notes','Logged At'];
+
+function rowArray(r) {
+  return [r.encounterId||'', r.date||'', r.initials||'', r.mrn||'', r.procedure||'', r.category||'', r.attending||'', r.location||'', r.role||'', r.outcome||'', r.notes||'', r.loggedAt||''];
+}
+
+function getOrCreateSheet(ss, name, headers) {
+  var sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    sh.appendRow(headers || HEADERS);
+    sh.setFrozenRows(1);
+    sh.getRange(1,1,1,headers ? headers.length : HEADERS.length).setFontWeight('bold');
+  }
+  return sh;
+}
+
+function appendRows(ss, rows) {
+  var allSh = getOrCreateSheet(ss, 'All Procedures');
+  var bxSh  = getOrCreateSheet(ss, 'Bronchoscopy');
+  var awSh  = getOrCreateSheet(ss, 'Airway');
+  var amSh  = getOrCreateSheet(ss, 'Airway Management');
+  var plSh  = getOrCreateSheet(ss, 'Pleural');
+  rows.forEach(function(r) {
+    var row = rowArray(r);
+    allSh.appendRow(row);
+    if (r.category === 'Bronchoscopy') bxSh.appendRow(row);
+    else if (r.category === 'Airway') awSh.appendRow(row);
+    else if (r.category === 'Airway Management') amSh.appendRow(row);
+    else if (r.category === 'Pleural') plSh.appendRow(row);
+  });
+  rebuildInitialsSheet(ss);
+  rebuildAttendingSheets(ss);
+  rebuildMonthlySummary(ss);
+}
+
+function rebuildAllSheets(ss, rows) {
+  var temp = ss.insertSheet('_temp');
+  ss.getSheets().forEach(function(sh){ if(sh.getName()!=='_temp') ss.deleteSheet(sh); });
+  var allSh = ss.insertSheet('All Procedures');      allSh.appendRow(HEADERS); allSh.setFrozenRows(1); allSh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');
+  var bxSh  = ss.insertSheet('Bronchoscopy');        bxSh.appendRow(HEADERS);  bxSh.setFrozenRows(1);  bxSh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');
+  var awSh  = ss.insertSheet('Airway');              awSh.appendRow(HEADERS);  awSh.setFrozenRows(1);  awSh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');
+  var amSh  = ss.insertSheet('Airway Management');   amSh.appendRow(HEADERS);  amSh.setFrozenRows(1);  amSh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');
+  var plSh  = ss.insertSheet('Pleural');             plSh.appendRow(HEADERS);  plSh.setFrozenRows(1);  plSh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');
+  ss.deleteSheet(temp);
+  rows.forEach(function(r) {
+    var row = rowArray(r);
+    allSh.appendRow(row);
+    if (r.category==='Bronchoscopy') bxSh.appendRow(row);
+    else if (r.category==='Airway') awSh.appendRow(row);
+    else if (r.category==='Airway Management') amSh.appendRow(row);
+    else if (r.category==='Pleural') plSh.appendRow(row);
+  });
+  rebuildInitialsSheet(ss);
+  rebuildAttendingSheets(ss);
+  rebuildMonthlySummary(ss);
+}
+
+function rebuildInitialsSheet(ss) {
+  var allSh = ss.getSheetByName('All Procedures');
+  if (!allSh) return;
+  var data = allSh.getDataRange().getValues();
+  var sh = ss.getSheetByName('By Initials');
+  if (sh) ss.deleteSheet(sh);
+  sh = ss.insertSheet('By Initials');
+  sh.appendRow(HEADERS);
+  sh.setFrozenRows(1);
+  sh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');
+  // Sort rows by initials (col index 2)
+  var dataRows = data.slice(1).sort(function(a,b){ return String(a[2]).localeCompare(String(b[2])); });
+  dataRows.forEach(function(r){ sh.appendRow(r); });
+}
+
+function rebuildAttendingSheets(ss) {
+  var allSh = ss.getSheetByName('All Procedures');
+  if (!allSh) return;
+  var data = allSh.getDataRange().getValues();
+  var byAtt = {};
+  for (var i=1;i<data.length;i++) {
+    var att = data[i][6] || 'Unknown';
+    if (!byAtt[att]) byAtt[att] = [];
+    byAtt[att].push(data[i]);
+  }
+  Object.keys(byAtt).forEach(function(att) {
+    var name = 'Attending: '+att;
+    var sh = ss.getSheetByName(name);
+    if (sh) ss.deleteSheet(sh);
+    sh = ss.insertSheet(name);
+    sh.appendRow(HEADERS);
+    sh.setFrozenRows(1);
+    sh.getRange(1,1,1,HEADERS.length).setFontWeight('bold');
+    byAtt[att].forEach(function(r){ sh.appendRow(r); });
+  });
+}
+
+function rebuildMonthlySummary(ss) {
+  var allSh = ss.getSheetByName('All Procedures');
+  if (!allSh) return;
+  var data = allSh.getDataRange().getValues();
+  var monthly = {};
+  var procs = {};
+  for (var i=1;i<data.length;i++) {
+    var d = data[i][1]; var proc = data[i][4];
+    var month = d ? d.toString().slice(0,7) : 'Unknown';
+    if (!monthly[month]) monthly[month] = {};
+    monthly[month][proc] = (monthly[month][proc]||0)+1;
+    procs[proc] = true;
+  }
+  var procList = Object.keys(procs).sort();
+  var sh = ss.getSheetByName('Monthly Summary');
+  if (sh) ss.deleteSheet(sh);
+  sh = ss.insertSheet('Monthly Summary');
+  var header = ['Month'].concat(procList).concat(['TOTAL']);
+  sh.appendRow(header);
+  sh.setFrozenRows(1);
+  sh.getRange(1,1,1,header.length).setFontWeight('bold');
+  Object.keys(monthly).sort().forEach(function(m) {
+    var total = 0;
+    var row = [m];
+    procList.forEach(function(p){ var c=monthly[m][p]||0; row.push(c); total+=c; });
+    row.push(total);
+    sh.appendRow(row);
+  });
+}
+`;
+
+let logs = [];
+let selectedProcs = new Set();
+let currentFilter = 'All';
+let settings = {
+  defaultAttending: '',
+  defaultLocation: 'Bronchoscopy suite',
+  sheetName: 'IP Fellowship Log',
+  appsScriptUrl: ''
 };
 
-let logs = JSON.parse(localStorage.getItem('pccm_logs')||'[]');
-let settings = JSON.parse(localStorage.getItem('pccm_settings')||'{"appsScriptUrl":"","sheetName":"Sheet1"}');
-let selected = new Set();
-let currentFilter = 'All';
-let editingId = null;
+(function init() {
+  const theme = localStorage.getItem('ip_theme') || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+  updateThemeBtn(theme);
+  try { logs = JSON.parse(localStorage.getItem('ip_logs') || '[]'); } catch(e) { logs = []; }
+  try { settings = Object.assign(settings, JSON.parse(localStorage.getItem('ip_settings') || '{}')); } catch(e) {}
+  document.getElementById('encDate').value = todayStr();
+  document.getElementById('scriptBox').textContent = APPS_SCRIPT_CODE;
+  applySettings();
+  updateRepeatBtn();
+  updateSaveBtnLabel();
+  if (localStorage.getItem('ip_launched')) showMain();
+})();
 
-function todayStr(){
-  const d = new Date(), tz = new Date(d.getTime()-d.getTimezoneOffset()*60000);
-  return tz.toISOString().slice(0,10);
-}
-function monthPfx(){ return todayStr().slice(0,7); }
-function stamp(){ return new Date().toLocaleString(); }
-function esc(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'),1900); }
+function todayStr() { return new Date().toISOString().slice(0,10); }
 
-function showScreen(name,btn){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-'+name).classList.add('active');
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  if(name==='history') renderLog();
-  if(name==='stats'){ renderStats(); renderHero(); }
-}
-
-function getCat(proc){
-  for(const [cat,items] of Object.entries(CATS)) if(items.find(x=>x[0]===proc)) return cat;
-  return 'Other';
+function applySettings() {
+  document.getElementById('defaultAttending').value = settings.defaultAttending || '';
+  document.getElementById('defaultLocation').value = settings.defaultLocation || 'Bronchoscopy suite';
+  document.getElementById('sheetName').value = settings.sheetName || 'IP Fellowship Log';
+  document.getElementById('appsScriptUrl').value = settings.appsScriptUrl || '';
+  if (settings.defaultAttending) document.getElementById('encAttending').value = settings.defaultAttending;
+  if (settings.defaultLocation) document.getElementById('encLocation').value = settings.defaultLocation;
 }
 
-function renderProcedures(){
-  const wrap = document.getElementById('procContainer');
-  wrap.innerHTML = Object.entries(CATS).map(([cat,items])=>`
-    <div class="cat-block">
-      <div class="cat-label">${cat}</div>
-      <div class="proc-grid">${items.map(([name,icon])=>`
-        <div class="proc-card${selected.has(name)?' active':''}" onclick="toggleProc(this)" data-proc="${esc(name)}" data-cat="${esc(cat)}">
-          <div class="proc-card-check"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
-          <div class="proc-card-icon">${icon}</div>
-          <div class="proc-card-name">${name}</div>
-        </div>`).join('')}
-      </div>
-    </div>`).join('');
+function applyDefaultsLive() {
+  settings.defaultAttending = document.getElementById('defaultAttending').value;
+  if (settings.defaultAttending) document.getElementById('encAttending').value = settings.defaultAttending;
 }
 
-function toggleProc(el){
-  const name = el.dataset.proc;
-  if(selected.has(name)) selected.delete(name); else selected.add(name);
-  renderProcedures(); renderSelected();
+function saveSettings() {
+  settings.defaultAttending = document.getElementById('defaultAttending').value;
+  settings.defaultLocation = document.getElementById('defaultLocation').value;
+  settings.sheetName = document.getElementById('sheetName').value;
+  settings.appsScriptUrl = document.getElementById('appsScriptUrl').value.trim();
+  localStorage.setItem('ip_settings', JSON.stringify(settings));
 }
 
-function renderSelected(){
-  const wrap = document.getElementById('selectedWrap');
-  wrap.innerHTML = selected.size===0 ? '<span style="color:var(--muted);font-size:14px;">None selected.</span>'
-    : [...selected].map(n=>`<span class="proc-badge">${esc(n)}</span>`).join('');
+function copyScript() {
+  navigator.clipboard.writeText(APPS_SCRIPT_CODE).then(()=>showToast('Script copied!')).catch(()=>showToast('Copy failed — select manually'));
 }
 
-function clearSelection(){ selected.clear(); renderProcedures(); renderSelected(); }
-
-async function saveEncounter(){
-  if(selected.size===0){ showToast('Select at least one procedure'); return; }
-  const enc = {
-    id: 'ENC-'+Date.now().toString(36).toUpperCase(),
-    date: document.getElementById('encDate').value||todayStr(),
-    initials: document.getElementById('encInitials').value.trim(),
-    
-    attending: document.getElementById('encAttending').value,
-    location: document.getElementById('encLocation').value,
-    role: document.getElementById('encRole').value,
-    outcome: document.getElementById('encOutcome').value,
-    indication: document.getElementById('encIndication').value.trim(),
-    complications: document.getElementById('encComplications').value.trim(),
-    notes: document.getElementById('encNotes').value.trim(),
-    loggedAt: stamp(),
-    procedures: [...selected].map(p=>({name:p,category:getCat(p)}))
-  };
-  logs.push(enc);
-  localStorage.setItem('pccm_logs',JSON.stringify(logs));
-  // Reset
-  ['encInitials','encIndication','encComplications','encNotes'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('encAttending').value=settings.defaultAttending||'';
-  document.getElementById('encLocation').value='Bedside/ICU';
-  document.getElementById('encRole').value='Primary operator';
-  document.getElementById('encOutcome').value='';
-  clearSelection(); renderHero();
-  // Sync
-  if(gAuthToken){
-    const btn=document.getElementById('saveBtn'); btn.textContent='Syncing…'; btn.disabled=true;
-    try {
-      await syncEncounterToSheets(enc);
-      showToast('✓ Saved & synced');
-    } catch(e) {
-      showToast('Saved locally — sync error');
-    }
-    btn.textContent='Save encounter'; btn.disabled=false;
-  } else { showToast('Encounter saved — sign in to sync'); }
+function signInGoogle() { showToast('Google sync: paste Apps Script URL in Settings'); skipAuth(); }
+function skipAuth() { localStorage.setItem('ip_launched','1'); updateSaveBtnLabel(); showMain(); }
+function showMain() {
+  document.getElementById('splashScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  renderLog();
 }
 
-/* HISTORY */
-function renderLog(){
-  const list = document.getElementById('logList');
-  const filtered = currentFilter==='All' ? logs : logs.filter(e=>e.procedures.some(p=>p.category===currentFilter));
-  renderFilterTabs();
-  if(filtered.length===0){ list.innerHTML='<span style="color:var(--muted);">No encounters yet.</span>'; return; }
-  list.innerHTML = [...filtered].reverse().map(enc=>`
-    <div class="log-entry">
-      <div class="log-entry-header">
-        <div>
-          <div class="log-date">${esc(enc.date)}</div>
-          <div class="log-sub">${esc(enc.attending||'No attending')} · ${esc(enc.location||'')}</div>
-        </div>
-        <div class="btn-pair">
-          <button class="log-action-btn log-edit-btn" onclick="openEditModal('${enc.id}')">Edit</button>
-          <button class="log-action-btn" onclick="deleteEncounter('${enc.id}')" style="color:var(--error);">Delete</button>
-        </div>
-      </div>
-      <div class="log-procs">${(enc.procedures||[]).map(p=>`<span class="proc-badge">${esc(p.name)}</span>`).join('')}</div>
-      <div class="log-meta">${[enc.initials?'Initials: '+esc(enc.initials):'',enc.role?esc(enc.role):'',enc.outcome?esc(enc.outcome):''].filter(Boolean).join(' · ')}</div>
-      ${enc.indication||enc.complications?`<div class="log-meta">${[enc.indication?'Indication: '+esc(enc.indication):'',enc.complications?'Complications: '+esc(enc.complications):''].filter(Boolean).join(' · ')}</div>`:''}
-      ${enc.notes?`<div class="log-note">${esc(enc.notes)}</div>`:''}
-    </div>`).join('');
-}
-
-function renderFilterTabs(){
-  const cats = ['All',...Object.keys(CATS)];
-  document.getElementById('filterTabs').innerHTML = cats.map(c=>`<button class="filter-tab${currentFilter===c?' active':''}" onclick="setFilter('${c.replace(/'/g,"\'")}',this)">${c}</button>`).join('');
-}
-function setFilter(f,btn){ currentFilter=f; renderLog(); }
-
-function deleteEncounter(id){
-  logs=logs.filter(e=>e.id!==id);
-  localStorage.setItem('pccm_logs',JSON.stringify(logs));
-  renderLog(); renderHero(); showToast('Encounter deleted');
-}
-
-/* EDIT MODAL */
-function openEditModal(id){
-  const enc=logs.find(e=>e.id===id); if(!enc) return;
-  editingId=id;
-  document.getElementById('editDate').value=enc.date||'';
-  document.getElementById('editInitials').value=enc.initials||'';
-  
-  document.getElementById('editAttending').value=enc.attending||'';
-  document.getElementById('editLocation').value=enc.location||'Bedside/ICU';
-  document.getElementById('editRole').value=enc.role||'Primary operator';
-  document.getElementById('editOutcome').value=enc.outcome||'';
-  document.getElementById('editIndication').value=enc.indication||'';
-  document.getElementById('editComplications').value=enc.complications||'';
-  document.getElementById('editNotes').value=enc.notes||'';
-  document.getElementById('editProcBadges').innerHTML=(enc.procedures||[]).map(p=>`<span class="proc-badge">${esc(p.name)}</span>`).join('');
-  document.getElementById('editModal').classList.add('open');
-  document.body.style.overflow='hidden';
-}
-function closeEditModal(e){
-  if(e&&e.target!==document.getElementById('editModal')) return;
-  document.getElementById('editModal').classList.remove('open');
-  document.body.style.overflow=''; editingId=null;
-}
-function saveEdit(){
-  if(!editingId) return;
-  const idx=logs.findIndex(e=>e.id===editingId); if(idx===-1) return;
-  logs[idx].date=document.getElementById('editDate').value;
-  logs[idx].initials=document.getElementById('editInitials').value.trim();
-  
-  logs[idx].attending=document.getElementById('editAttending').value;
-  logs[idx].location=document.getElementById('editLocation').value;
-  logs[idx].role=document.getElementById('editRole').value;
-  logs[idx].outcome=document.getElementById('editOutcome').value;
-  logs[idx].indication=document.getElementById('editIndication').value.trim();
-  logs[idx].complications=document.getElementById('editComplications').value.trim();
-  logs[idx].notes=document.getElementById('editNotes').value.trim();
-  localStorage.setItem('pccm_logs',JSON.stringify(logs));
-  document.getElementById('editModal').classList.remove('open');
-  document.body.style.overflow=''; editingId=null;
-  renderLog(); showToast('Encounter updated');
-}
-
-/* STATS */
-function renderStats(){
-  const counts={};
-  logs.forEach(e=>(e.procedures||[]).forEach(p=>counts[p.name]=(counts[p.name]||0)+1));
-  const rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('statList').innerHTML = rows.length
-    ? rows.map(([n,c])=>`<div class="stat-row"><span class="stat-name">${esc(n)}</span><span class="stat-count">${c}</span></div>`).join('')
-    : '<span style="color:var(--muted);">No data yet.</span>';
-}
-
-/* SETTINGS */
-function saveSettings(){
-  settings.defaultAttending = document.getElementById('settingsAttending').value;
-  localStorage.setItem('pccm_settings',JSON.stringify(settings));
-  showToast('Default attending saved');
-}
-function saveGoogleSettings(){
-  settings.sheetName = document.getElementById('settingsSheet').value.trim()||'PCCM Logbook';
-  localStorage.setItem('pccm_settings',JSON.stringify(settings));
-  showToast('Settings saved');
-}
-
-/* EXPORT */
-function exportCsv(){
-  // Sheet 1: Raw log
-  const rows=[['encounterId','date','initials','mrn','procedure','category','attending','location','role','outcome','indication','complications','notes','loggedAt']];
-  logs.forEach(e=>(e.procedures||[]).forEach(p=>rows.push([e.id,e.date,e.initials||'',e.mrn||'',p.name,p.category,e.attending||'',e.location||'',e.role||'',e.outcome||'',e.indication||'',e.complications||'',e.notes||'',e.loggedAt||''])));
-
-  // Sheet 2: Procedure count summary
-  const procCounts={};
-  logs.forEach(e=>(e.procedures||[]).forEach(p=>{ procCounts[p.name]=(procCounts[p.name]||0)+1; }));
-  const procRows=[[''],['--- PROCEDURE SUMMARY ---'],['Procedure','Count']];
-  Object.entries(procCounts).sort((a,b)=>b[1]-a[1]).forEach(([n,c])=>procRows.push([n,c]));
-
-  // Sheet 3: Per-attending sections (for sign-off)
-  const attLogs={};
-  logs.forEach(e=>{ const att=e.attending||'Unknown'; if(!attLogs[att]) attLogs[att]=[]; attLogs[att].push(e); });
-  const attRows=[[''],['=== PROCEDURES BY ATTENDING (for sign-off/verification) ===']];
-  const hdr=['Date','Initials','Procedure','Category','Location','Role','Outcome','Indication','Complications','Notes'];
-  Object.keys(attLogs).sort().forEach(att=>{
-    attRows.push([''],['--- '+att+' ---'],hdr);
-    attLogs[att].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
-      (e.procedures||[]).forEach(p=>{
-        attRows.push([e.date,e.initials||'',e.mrn||'',p.name,p.category,e.location||'',e.role||'',e.outcome||'',e.indication||'',e.complications||'',e.notes||'']);
-      });
-    });
-    // Count summary for this attending
-    const cnt={};
-    attLogs[att].forEach(e=>(e.procedures||[]).forEach(p=>cnt[p.name]=(cnt[p.name]||0)+1));
-    attRows.push(['Procedure totals:']);
-    Object.entries(cnt).sort((a,b)=>b[1]-a[1]).forEach(([n,c])=>attRows.push(['',n,c]));
-  });
-
-  const allRows=[...rows,...procRows,...attRows];
-  const csv=allRows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
-  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='pccm-logbook.csv'; a.click();
-}
-function exportJson(){
-  const a=document.createElement('a'); a.href='data:application/json,'+encodeURIComponent(JSON.stringify(logs,null,2)); a.download='pccm-logbook.json'; a.click();
-}
-
-/* HERO */
-function renderHero(){
-  const total=logs.reduce((n,e)=>n+(e.procedures||[]).length,0);
-  const month=logs.filter(e=>(e.date||'').startsWith(monthPfx())).reduce((n,e)=>n+(e.procedures||[]).length,0);
-  document.getElementById('heroEnc').textContent=logs.length;
-  document.getElementById('heroProc').textContent=total;
-  document.getElementById('heroMonth').textContent=month;
-}
-
-// Init
-document.getElementById('encDate').value = todayStr();
-// OAuth handles sync — no manual URL needed
-document.getElementById('settingsSheet').value = settings.sheetName||'Sheet1';
-// Populate settings attending dropdown
-const attList = [...document.getElementById('encAttending').options].slice(1).map(o=>o.value);
-const settingsAttEl = document.getElementById('settingsAttending');
-attList.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; settingsAttEl.appendChild(o); });
-settingsAttEl.value = settings.defaultAttending||'';
-// Apply default attending to form
-if(settings.defaultAttending) document.getElementById('encAttending').value = settings.defaultAttending;
-renderProcedures(); renderSelected(); renderHero(); renderLog();
-
-
-// ─── GOOGLE OAUTH + SHEETS API ───────────────────────────────────────────────
-// Replace CLIENT_ID with your Google Cloud OAuth 2.0 client ID
-const GOOGLE_CLIENT_ID = '78017385991-8npbvhbncqkpa9s3uqs1bjs0tsipfh8d.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
-
-let gAuthToken = null;
-let gUserEmail = '';
-let gUserName = '';
-let tokenClient = null;
-
-function initGoogleAuth() {
-  if (!window.google || !window.google.accounts) {
-    setTimeout(initGoogleAuth, 500); return;
-  }
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_CLIENT_ID,
-    scope: SCOPES,
-    callback: (resp) => {
-      if (resp.error) { showToast('Sign-in failed'); return; }
-      gAuthToken = resp.access_token;
-      // Get user info
-      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: 'Bearer ' + gAuthToken }
-      }).then(r=>r.json()).then(info => {
-        gUserEmail = info.email || '';
-        gUserName = info.name || info.email || 'Signed in';
-        updateAuthUI(true);
-      });
-    }
-  });
-}
-
-function handleAuthBtn() {
-  if (gAuthToken) {
-    // Sign out
-    google.accounts.oauth2.revoke(gAuthToken, () => {});
-    gAuthToken = null; gUserEmail = ''; gUserName = '';
-    updateAuthUI(false);
-    showToast('Signed out');
-  } else {
-    tokenClient.requestAccessToken();
-  }
-}
-
-function updateAuthUI(signedIn) {
-  const banner = document.getElementById('authBanner');
-  const info = document.getElementById('authInfo');
-  const btn = document.getElementById('authBtn');
-  const sBanner = document.getElementById('settingsAuthBanner');
-  const sInfo = document.getElementById('settingsAuthInfo');
-  const sSub = document.getElementById('settingsAuthSub');
-  const sBtn = document.getElementById('settingsAuthBtn');
-  if (signedIn) {
-    banner.classList.add('signed-in');
-    info.textContent = '✓ ' + gUserName;
-    btn.textContent = 'Sign out'; btn.classList.add('sign-out');
-    sBanner.classList.add('signed-in');
-    sInfo.textContent = '✓ ' + gUserName + ' (' + gUserEmail + ')';
-    sSub.textContent = 'Data syncs to your Google Drive automatically';
-    sBtn.textContent = 'Sign out'; sBtn.classList.add('sign-out');
-  } else {
-    banner.classList.remove('signed-in');
-    info.textContent = 'Not signed in';
-    btn.textContent = 'Sign in with Google'; btn.classList.remove('sign-out');
-    sBanner.classList.remove('signed-in');
-    sInfo.textContent = 'Not signed in';
-    sSub.textContent = 'Sign in to enable automatic sync to your own Google Drive';
-    sBtn.textContent = 'Sign in'; sBtn.classList.remove('sign-out');
-  }
-}
-
-async function syncEncounterToSheets(enc) {
-  const sheetName = settings.sheetName || 'PCCM Logbook';
-  const attSheet = enc.attending ? enc.attending.split(',')[0].trim() : null;
-
-  // 1. Get or create the spreadsheet
-  const ssId = await getOrCreateSpreadsheet(sheetName);
-
-  // 2. Ensure main sheet has headers, write rows
-  const rows = enc.procedures.map(p => [
-    enc.id, enc.date, enc.initials||'', p.name, p.category,
-    enc.attending||'', enc.location||'', enc.role||'', enc.outcome||'',
-    enc.indication||'', enc.complications||'', enc.notes||'', enc.loggedAt||'', ''
-  ]);
-
-  await ensureSheetsHeaders(ssId, 'Log', [
-    'Encounter ID','Date','Initials','Procedure','Category',
-    'Attending','Location','Role','Outcome','Indication','Complications','Notes','Logged At','Attending Verification'
-  ]);
-  await appendToSheet(ssId, 'Log', rows);
-
-  // 3. Write to attending-specific tab
-  if (attSheet) {
-    await ensureSheetsHeaders(ssId, attSheet, [
-      'Encounter ID','Date','Initials','Procedure','Category',
-      'Attending','Location','Role','Outcome','Indication','Complications','Notes','Logged At','Attending Verification'
-    ]);
-    await appendToSheet(ssId, attSheet, rows);
-  }
-
-  // Save ssId for future use
-  settings.spreadsheetId = ssId;
-  localStorage.setItem('pccm_settings', JSON.stringify(settings));
-}
-
-async function getOrCreateSpreadsheet(title) {
-  // Return cached ID if available
-  if (settings.spreadsheetId) return settings.spreadsheetId;
-
-  // Search Drive for existing sheet
-  const search = await gFetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='${encodeURIComponent(title)}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false&fields=files(id,name)`
-  );
-  const found = await search.json();
-  if (found.files && found.files.length > 0) return found.files[0].id;
-
-  // Create new spreadsheet
-  const create = await gFetch('https://sheets.googleapis.com/v4/spreadsheets', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ properties: { title } })
-  });
-  const ss = await create.json();
-  return ss.spreadsheetId;
-}
-
-async function ensureSheetsHeaders(ssId, sheetTab, headers) {
-  // Get sheet list
-  const meta = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${ssId}?fields=sheets.properties`);
-  const metaJson = await meta.json();
-  const sheets = (metaJson.sheets || []).map(s => s.properties.title);
-
-  if (!sheets.includes(sheetTab)) {
-    // Add new sheet tab
-    await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${ssId}:batchUpdate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests: [{ addSheet: { properties: { title: sheetTab } } }] })
-    });
-    // Write headers
-    await appendToSheet(ssId, sheetTab, [headers]);
-  } else {
-    // Check if row 1 already has headers
-    const check = await gFetch(`https://sheets.googleapis.com/v4/spreadsheets/${ssId}/values/${encodeURIComponent(sheetTab)}!A1:A1`);
-    const checkJson = await check.json();
-    if (!checkJson.values || checkJson.values.length === 0) {
-      await appendToSheet(ssId, sheetTab, [headers]);
-    }
-  }
-}
-
-async function appendToSheet(ssId, sheetTab, rows) {
-  await gFetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${ssId}/values/${encodeURIComponent(sheetTab)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: rows })
-    }
-  );
-}
-
-function gFetch(url, opts = {}) {
-  opts.headers = opts.headers || {};
-  opts.headers['Authorization'] = 'Bearer ' + gAuthToken;
-  return fetch(url, opts);
-}
-
-// Init auth when Google script loads
-window.addEventListener('load', () => setTimeout(initGoogleAuth, 800));
-
-
-
-
-// ─── REPEAT LAST ENCOUNTER (from log screen) ─────────────────────────────────
-function repeatLastEncounter() {
-  const active = encounters.filter(e => !e._superseded);
-  if (!active.length) { showToast('No previous encounter to repeat'); return; }
-  const enc = [...active].sort((a,b) => new Date(b.loggedAt) - new Date(a.loggedAt))[0];
-
-  document.getElementById('date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('initials').value = enc.initials || '';
-  
-  document.getElementById('attending').value = enc.attending || '';
-  document.getElementById('location').value = enc.location || '';
-  document.getElementById('role').value = enc.role || '';
-  document.getElementById('outcome').value = enc.outcome || '';
-  document.getElementById('indication').value = enc.indication || '';
-  document.getElementById('complications').value = '';
-  document.getElementById('notes').value = '';
-
-  currentProcedures = (enc.procedures || []).map(p => ({ ...p }));
-  renderProcedures();
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  showToast('📋 Copied — review & update details');
-}
-
-
-// ─── DARK MODE ────────────────────────────────────────────────────────────────
 function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme') || 'light';
   const next = cur === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('pccm_theme', next);
+  localStorage.setItem('ip_theme', next);
   updateThemeBtn(next);
 }
 function updateThemeBtn(theme) {
   const btn = document.getElementById('themeBtn');
   if (!btn) return;
   btn.innerHTML = theme === 'dark'
-    ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
-    : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
 }
-// Init theme on load
-(function() {
-  const saved = localStorage.getItem('pccm_theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const theme = saved || (prefersDark ? 'dark' : 'light');
-  document.documentElement.setAttribute('data-theme', theme);
-  document.addEventListener('DOMContentLoaded', () => updateThemeBtn(theme));
-})();
 
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelector('[data-screen="' + name + '"]').classList.add('active');
+  if (name === 'history') renderLog();
+  if (name === 'stats') renderStats();
+}
 
+function toggleProc(card) {
+  const proc = card.dataset.proc;
+  if (selectedProcs.has(proc)) { selectedProcs.delete(proc); card.classList.remove('selected'); }
+  else { selectedProcs.add(proc); card.classList.add('selected'); }
+  updateSelectionBar();
+}
 
+function clearSelection() {
+  selectedProcs.clear();
+  document.querySelectorAll('.proc-card.selected').forEach(c => c.classList.remove('selected'));
+  updateSelectionBar();
+}
+
+function updateSelectionBar() {
+  const bar = document.getElementById('selectionBar');
+  const chipsEl = document.getElementById('selectionChips');
+  const countEl = document.getElementById('selectionCount');
+  if (selectedProcs.size === 0) { bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  countEl.textContent = selectedProcs.size;
+  chipsEl.innerHTML = [...selectedProcs].map(p => `<span class="chip">${p}</span>`).join('');
+}
+
+function updateSaveBtnLabel() {
+  const btn = document.getElementById('saveBtn');
+  if (!btn) return;
+  const hasScript = settings.appsScriptUrl && settings.appsScriptUrl.length > 10;
+  btn.innerHTML = hasScript
+    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save &amp; sync to Sheets'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save encounter';
+}
+
+function updateRepeatBtn() {
+  const btn = document.getElementById('repeatBtn');
+  if (btn) btn.style.display = logs.length > 0 ? 'inline-flex' : 'none';
+}
+
+function repeatLast() {
+  if (logs.length === 0) return;
+  const last = logs[logs.length-1];
+  last.procedures.forEach(p => {
+    const card = document.querySelector(`[data-proc="${p.name}"]`);
+    if (card && !selectedProcs.has(p.name)) { selectedProcs.add(p.name); card.classList.add('selected'); }
+  });
+  if (last.attending) document.getElementById('encAttending').value = last.attending;
+  if (last.location) document.getElementById('encLocation').value = last.location;
+  document.getElementById('encDate').value = todayStr();
+  updateSelectionBar();
+  showToast('Last encounter pre-filled');
+}
+
+async function saveEncounter() {
+  if (selectedProcs.size === 0) { showToast('Select at least one procedure'); return; }
+  const date = document.getElementById('encDate').value || todayStr();
+  const initials = document.getElementById('encInitials').value.trim();
+  const mrn = document.getElementById('encMRN').value.trim();
+  const attending = document.getElementById('encAttending').value;
+  const location = document.getElementById('encLocation').value;
+  const role = document.getElementById('encRole').value;
+  const outcome = document.getElementById('encOutcome').value;
+  const notes = document.getElementById('encNotes').value.trim();
+  const loggedAt = localTimestamp();
+  const encounterId = 'ENC-' + Date.now().toString(36).toUpperCase();
+
+  const newRows = [];
+  selectedProcs.forEach(proc => {
+    const card = document.querySelector(`[data-proc="${proc}"]`);
+    const cat = card ? card.dataset.cat : 'Other';
+    newRows.push({ encounterId, date, initials, mrn, procedure: proc, category: cat, attending, location, role, outcome, notes, loggedAt });
+  });
+
+  // Save locally
+  const enc = { id: loggedAt, encounterId, date, initials, mrn, attending, location, role, outcome, notes, loggedAt, procedures: newRows.map(r=>({name:r.procedure,category:r.category})) };
+  logs.push(enc);
+  localStorage.setItem('ip_logs', JSON.stringify(logs));
+
+  // Sync to Apps Script if configured
+  if (settings.appsScriptUrl && settings.appsScriptUrl.length > 10) {
+    const btn = document.getElementById('saveBtn');
+    btn.textContent = 'Syncing…';
+    btn.disabled = true;
+    try {
+      const resp = await fetch(settings.appsScriptUrl, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'append', sheetName: settings.sheetName, rows: newRows })
+      });
+      const json = await resp.json();
+      if (json.status === 'ok') showToast('✓ Saved & synced to Sheets');
+      else showToast('Saved locally — sync error: ' + (json.message||'unknown'));
+    } catch(err) {
+      showToast('Saved locally — no connection');
+    }
+    btn.disabled = false;
+    updateSaveBtnLabel();
+  } else {
+    showToast('Encounter saved locally');
+  }
+
+  // Reset form
+  clearSelection();
+  document.getElementById('encInitials').value = '';
+  document.getElementById('encMRN').value = '';
+  document.getElementById('encRole').value = 'Primary operator';
+  document.getElementById('encOutcome').value = '';
+  document.getElementById('encNotes').value = '';
+  document.getElementById('encDate').value = todayStr();
+  if (settings.defaultAttending) document.getElementById('encAttending').value = settings.defaultAttending;
+  if (settings.defaultLocation) document.getElementById('encLocation').value = settings.defaultLocation;
+  updateRepeatBtn();
+}
+
+function setFilter(btn) {
+  currentFilter = btn.dataset.filter;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderLog();
+}
+
+function renderLog() {
+  const list = document.getElementById('logList');
+  const allProcs = logs.flatMap(e => e.procedures);
+  const filtered = currentFilter === 'All' ? logs : logs.filter(e => e.procedures.some(p => p.category === currentFilter));
+  document.getElementById('procCount').textContent = allProcs.length + ' procedure' + (allProcs.length !== 1 ? 's' : '');
+  if (filtered.length === 0) { list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px 0;font-size:14px;">No procedures logged yet</div>'; return; }
+  list.innerHTML = [...filtered].reverse().map(enc => {
+    const procs = enc.procedures || [];
+    return `<div class="log-entry">
+      <div class="log-entry-header">
+        <div>
+          <div class="log-date">${enc.date}</div>
+          <div class="log-attending">${enc.attending || 'No attending'} · ${enc.location || ''}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="log-action-btn log-edit-btn" onclick="openEditModal('${enc.id}')">Edit</button>
+          <button class="log-action-btn" onclick="deleteEncounter('${enc.id}')">Delete</button>
+        </div>
+      </div>
+      <div class="log-procs">${procs.map(p=>`<span class="proc-badge">${p.name}</span>`).join('')}</div>
+      <div class="log-meta">${enc.initials ? '<span>'+enc.initials+'</span>':''} ${enc.mrn ? '<span>MRN: '+enc.mrn+'</span>':''} ${enc.role ? '<span>'+enc.role+'</span>':''} ${enc.outcome ? '<span>'+enc.outcome+'</span>':''}</div>
+      ${enc.notes ? `<div class="log-note">${enc.notes}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function deleteEncounter(id) {
+  logs = logs.filter(e => e.id !== id);
+  localStorage.setItem('ip_logs', JSON.stringify(logs));
+  renderLog();
+  updateRepeatBtn();
+  showToast('Encounter deleted');
+}
+
+let editingId = null;
+
+function openEditModal(id) {
+  const enc = logs.find(e => e.id === id);
+  if (!enc) return;
+  editingId = id;
+  document.getElementById('editDate').value = enc.date || '';
+  document.getElementById('editInitials').value = enc.initials || '';
+  document.getElementById('editMRN').value = enc.mrn || '';
+  document.getElementById('editAttending').value = enc.attending || '';
+  document.getElementById('editLocation').value = enc.location || 'Bronchoscopy suite';
+  document.getElementById('editRole').value = enc.role || 'Primary operator';
+  document.getElementById('editOutcome').value = enc.outcome || '';
+  document.getElementById('editNotes').value = enc.notes || '';
+  // Render procedure badges
+  const procs = enc.procedures || [];
+  document.getElementById('editProcList').innerHTML = procs.map(p =>
+    `<span class="proc-badge" style="background:var(--primary-tint);color:var(--primary);border:1.5px solid var(--primary);">${p.name}</span>`
+  ).join('');
+  document.getElementById('editModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('editModal')) return;
+  document.getElementById('editModal').classList.remove('open');
+  document.body.style.overflow = '';
+  editingId = null;
+}
+
+function saveEdit() {
+  if (!editingId) return;
+  const idx = logs.findIndex(e => e.id === editingId);
+  if (idx === -1) return;
+  logs[idx].date = document.getElementById('editDate').value;
+  logs[idx].initials = document.getElementById('editInitials').value.trim();
+  logs[idx].mrn = document.getElementById('editMRN').value.trim();
+  logs[idx].attending = document.getElementById('editAttending').value;
+  logs[idx].location = document.getElementById('editLocation').value;
+  logs[idx].role = document.getElementById('editRole').value;
+  logs[idx].outcome = document.getElementById('editOutcome').value;
+  logs[idx].notes = document.getElementById('editNotes').value.trim();
+  localStorage.setItem('ip_logs', JSON.stringify(logs));
+  document.getElementById('editModal').classList.remove('open');
+  document.body.style.overflow = '';
+  editingId = null;
+  renderLog();
+  showToast('Encounter updated');
+}
+
+// ── STATS ──
+function renderStats() {
+  const allProcs = logs.flatMap(e =>
+    (e.procedures||[]).map(p => ({ ...p, date: e.date, attending: e.attending, loggedAt: e.loggedAt }))
+  );
+  const total = allProcs.length;
+  document.getElementById('statTotal').textContent = total;
+
+  // By category
+  const cats = { Bronchoscopy: 0, Airway: 0, 'Airway Management': 0, Pleural: 0 };
+  allProcs.forEach(p => { if (cats[p.category] !== undefined) cats[p.category]++; else cats['Other'] = (cats['Other']||0)+1; });
+  const maxCat = Math.max(...Object.values(cats), 1);
+  document.getElementById('statsByCategory').innerHTML = Object.entries(cats).map(([cat,cnt]) =>
+    `<div class="stat-cat-row">
+      <div class="stat-cat-name">${cat}</div>
+      <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${Math.round(cnt/maxCat*100)}%"></div></div>
+      <div class="stat-cat-count">${cnt}</div>
+    </div>`
+  ).join('');
+
+  // By procedure
+  const byProc = {};
+  allProcs.forEach(p => { byProc[p.name] = (byProc[p.name]||0)+1; });
+  const sortedProcs = Object.entries(byProc).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('statsByProc').innerHTML = total === 0
+    ? '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No data yet</div>'
+    : sortedProcs.map(([name,cnt]) =>
+        `<div class="stat-proc-row"><span class="stat-proc-name">${name}</span><span class="stat-proc-count">${cnt}</span></div>`
+      ).join('');
+
+  // By attending
+  const byAtt = {};
+  allProcs.forEach(p => {
+    const att = p.attending || 'Unspecified';
+    if (!byAtt[att]) byAtt[att] = { total:0, procs:{} };
+    byAtt[att].total++;
+    byAtt[att].procs[p.name] = (byAtt[att].procs[p.name]||0)+1;
+  });
+  const sortedAtts = Object.entries(byAtt).sort((a,b)=>b[1].total-a[1].total);
+  document.getElementById('statsByAttending').innerHTML = total === 0
+    ? '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No data yet</div>'
+    : sortedAtts.map(([att,d]) => {
+        const top = Object.entries(d.procs).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n,c])=>`${n} (${c})`).join(', ');
+        return `<div class="stat-att-row">
+          <div><div class="stat-att-name">${att}</div><div style="font-size:12px;color:var(--muted);margin-top:2px;">${top}</div></div>
+          <div class="stat-att-count">${d.total}</div>
+        </div>`;
+      }).join('');
+
+  // By month
+  const byMonth = {};
+  allProcs.forEach(p => {
+    const m = (p.date||'').slice(0,7);
+    if (m) byMonth[m] = (byMonth[m]||0)+1;
+  });
+  const sortedMonths = Object.entries(byMonth).sort((a,b)=>a[0].localeCompare(b[0]));
+  const maxMonth = Math.max(...Object.values(byMonth), 1);
+  document.getElementById('statsByMonth').innerHTML = sortedMonths.length === 0
+    ? '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No data yet</div>'
+    : sortedMonths.map(([m,cnt]) => {
+        const label = new Date(m+'-02').toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+        const pct = Math.max(Math.round(cnt/maxMonth*100), 8);
+        return `<div class="month-bar-row">
+          <div class="month-label">${label}</div>
+          <div class="month-bar-wrap"><div class="month-bar-fill" style="width:${pct}%"><span class="month-bar-num">${cnt}</span></div></div>
+        </div>`;
+      }).join('');
+}
+
+// ── EXPORT ──
+function localTimestamp() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function exportCSV() {
+  const allProcs = logs.flatMap(e =>
+    (e.procedures||[]).map(p => [e.encounterId||'', e.date, e.initials||'', e.mrn||'', p.name, p.category, e.attending||'', e.location||'', e.role||'', e.outcome||'', e.notes||'', e.loggedAt||''])
+  );
+  const header = ['Encounter ID','Date','Initials','MRN','Procedure','Category','Attending','Location','Role','Outcome','Notes','Logged At'];
+  const csv = [header, ...allProcs].map(r => r.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  downloadFile('ip-logbook.csv', csv, 'text/csv');
+  showToast('CSV downloaded');
+}
+
+function exportXLSX() {
+  if (typeof XLSX === 'undefined') { showToast('SheetJS not loaded — check internet connection'); return; }
+  const wb = XLSX.utils.book_new();
+  const HEADERS = ['Encounter ID','Date','Initials','MRN','Procedure','Category','Attending','Location','Role','Outcome','Notes','Logged At'];
+
+  const allRows = logs.flatMap(e =>
+    (e.procedures||[]).map(p => ({
+      'Encounter ID': e.encounterId||'', Date: e.date, Initials: e.initials||'', MRN: e.mrn||'',
+      Procedure: p.name, Category: p.category, Attending: e.attending||'',
+      Location: e.location||'', Role: e.role||'', Outcome: e.outcome||'',
+      Notes: e.notes||'', 'Logged At': e.loggedAt||''
+    }))
+  );
+
+  // Sheet 1: All
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allRows, {header:HEADERS}), 'All Procedures');
+
+  // Sheets 2-5: By category
+  ['Bronchoscopy','Airway','Airway Management','Pleural'].forEach(cat => {
+    const rows = allRows.filter(r => r.Category === cat);
+    const safeName = cat.slice(0,31);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{}], {header:HEADERS}), safeName);
+  });
+
+  // By Initials sheet
+  const initialsGroups = {};
+  allRows.forEach(r => {
+    const key = r.Initials || 'Unknown';
+    if (!initialsGroups[key]) initialsGroups[key] = [];
+    initialsGroups[key].push(r);
+  });
+  const initialsRows = Object.entries(initialsGroups).sort().flatMap(([ini, rows]) => rows);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(initialsRows.length ? initialsRows : [{}], {header:HEADERS}), 'By Initials');
+
+  // By Attending sheets
+  const attGroups = {};
+  allRows.forEach(r => {
+    const att = r.Attending || 'Unspecified';
+    if (!attGroups[att]) attGroups[att] = [];
+    attGroups[att].push(r);
+  });
+  Object.entries(attGroups).sort().forEach(([att,rows]) => {
+    const safeName = ('Att_'+att).slice(0,31).replace(/[\\\/*?\[\]:]/g,'_');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows, {header:HEADERS}), safeName);
+  });
+
+  // Monthly Summary
+  const monthly = {};
+  const procNames = [...new Set(allRows.map(r=>r.Procedure))].sort();
+  allRows.forEach(r => {
+    const m = (r.Date||'').slice(0,7);
+    if (!m) return;
+    if (!monthly[m]) { monthly[m] = {Month:m}; procNames.forEach(p=>monthly[m][p]=0); monthly[m].TOTAL=0; }
+    if (monthly[m][r.Procedure] !== undefined) monthly[m][r.Procedure]++;
+    monthly[m].TOTAL++;
+  });
+  const summaryRows = Object.values(monthly).sort((a,b)=>a.Month.localeCompare(b.Month));
+  const summaryHeaders = ['Month',...procNames,'TOTAL'];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows.length ? summaryRows : [{}], {header:summaryHeaders}), 'Monthly Summary');
+
+  XLSX.writeFile(wb, 'ip-logbook.xlsx');
+  showToast('Excel file downloaded');
+}
+
+function downloadFile(filename, content, mime) {
+  const blob = new Blob([content], {type:mime});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+function clearAllData() {
+  if (!confirm('Delete all locally stored procedures? This cannot be undone.')) return;
+  logs = [];
+  localStorage.removeItem('ip_logs');
+  renderLog();
+  updateRepeatBtn();
+  showToast('All data cleared');
+}
+
+let _toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+<script>
 // ─── VOICE DICTATION ─────────────────────────────────────────────────────────
 let recognition = null;
 let isListening = false;
@@ -1126,56 +1416,11 @@ function applyTranscript() {
 
   // ── ATTENDING — rich alias map (last name + phonetic variants) ──
   const ATTENDING_ALIASES = {
-    'Agrawal, Abhinav':      ['agrawal','abhinav'],
-    'Basist, Madeleine':     ['basist','madeleine','madeline'],
-    'Chang, Anna':           ['chang','anna chang'],
-    'Davidov, Iosif':        ['davidov','iosif','joseph davidov'],
-    'Derfel, Juliana':       ['derfel','juliana'],
-    'Dhar, Sean':            ['dhar','sean dhar'],
-    'Duenas, Sean':          ['duenas','dueñas','sean duenas'],
-    'Durst, Matthew':        ['durst','matthew durst'],
-    'Emeagwali, Nkiruka':    ['emeagwali','nkiruka','emeagually','emegwali'],
-    'Fryman, Craig':         ['fryman','craig fryman'],
-    'Gottesman, Eric':       ['gottesman','eric gottesman'],
-    'Habibullah, Junaid':    ['habibullah','junaid','habib'],
-    'Hahn, Stella':          ['hahn','stella hahn'],
-    'Hamad, Mohammed':       ['hamad','mohammed hamad','mohamed'],
-    'Hasan, Zubair':         ['hasan','zubair','hassaan','zubayr'],
-    'Hessel, Justina':       ['hessel','justina'],
-    'Hilewitz, Ayelet':      ['hilewitz','ayelet','hilewits'],
-    'Iakovou, Annamaria':    ['iakovou','annamaria','iacovou','yakovou'],
-    'Khanijo, Sameer':       ['khanijo','sameer','kanijo'],
-    'Kim, Adam':             ['kim','adam kim'],
-    'Korotun, Maksim':       ['korotun','maksim','koroton'],
-    'Lisker, Gita':          ['lisker','gita'],
-    'MacDonald, Zachary':    ['macdonald','zachary','mcdonald'],
-    'Makaryus, Mina':        ['makaryus','mina','makarius'],
-    'Mayo, Paul':            ['mayo','paul mayo'],
-    'Melamud, Aleksandr':    ['melamud','aleksandr','alexander melamud'],
-    'Millwala, Salman':      ['millwala','salman','milwala'],
-    'Mohanka, Manish':       ['mohanka','manish'],
-    'Moonian, Andrew':       ['moonian','andrew moonian'],
-    'Morim, Olga':           ['morim','olga'],
-    'Murn, Michael':         ['murn','michael murn'],
-    'Narasimhan, Mangala':   ['narasimhan','mangala','narasimhun'],
-    'Palmares, Francine':    ['palmares','francine'],
-    'Pierce, Matthew':       ['pierce','matthew pierce'],
-    'Prabhakar, Laxminarayan':['prabhakar','laxminarayan','prabhaker','laxmi'],
-    'Quintero, Luis':        ['quintero','luis quintero'],
-    'Ravishankar, Shreyas':  ['ravishankar','shreyas','ravishanker'],
-    'Sfakianos, Maria':      ['sfakianos','maria sfakianos','sfakianas'],
-    'Shah, Dimple':          ['shah','dimple','dimple shah'],
-    'Shaikh, Aman':          ['shaikh','aman','sheikh aman','sheikh'],
-    'Singas, Effie':         ['singas','effie'],
-    'Smith, Kira':           ['smith','kira smith'],
-    'Tafreshi, Mehran':      ['tafreshi','mehran','tafrishi'],
-    'Talwar, Arunabh':       ['talwar','arunabh','talwaar'],
-    'Tomanelli, Toni Ann':   ['tomanelli','toni ann','toni','tomaneli'],
-    'Walsh, Danielle':       ['walsh','danielle walsh'],
-    'Wang, Janice':          ['wang','janice wang'],
-    'Weinstein, Tatiana':    ['weinstein','tatiana'],
-    'Wong, Kelvin':          ['wong','kelvin'],
-    'Zaidi, Gulrukh':        ['zaidi','gulrukh','zaydi'],
+    'Robert P. Lee':       ['lee','robert lee','rob lee'],
+    'Or Kalchiem-Dekel':   ['kalchiem','dekel','kalchiem-dekel','kalheim','kalchim','or kalchiem','or dekel','or ','oar ','oar kalchiem'],
+    'Catherine Oberg':     ['oberg','catherine','catherine oberg'],
+    'Rastko Rakocevic':    ['rakocevic','rastko','rakochevich','rakochevic','rakotsevic','rocko'],
+    'Mohit Chawla':        ['chawla','mohit','mohit chawla'],
   };
   const attSelect = document.getElementById('encAttending');
   let attMatched = false;
@@ -1189,30 +1434,41 @@ function applyTranscript() {
 
   // ── PROCEDURES — exact keyword map (avoids false positives) ──
   const PROC_KEYWORDS = {
-    'Endotracheal intubation':        ['endotracheal','et tube','et intubation','oral intubation'],
-    'Bronchoscopic intubation':       ['bronchoscopic intubation','scope intubation'],
-    'Percutaneous tracheostomy':      ['tracheostomy','trach','pdt','percutaneous trach'],
-    'Central venous catheter':        ['central line','central venous','cvc','central catheter'],
-    'Arterial line':                  ['arterial line','a-line','art line','radial line','femoral art'],
-    'Dialysis catheter':              ['dialysis catheter','dialysis line','hd catheter','crrt catheter'],
-    'Pulmonary artery catheter':      ['pulmonary artery catheter','swan','swan-ganz','pa catheter'],
-    'Transvenous pacemaker insertion':['transvenous pacemaker','temporary pacemaker','tvp','transvenous pace'],
-    'Intraosseous (IO)':              ['intraosseous','io line','io access'],
-    'Thoracentesis':                  ['thoracentesis','thoracenteses','pleural tap','pleural drainage'],
-    'Pigtail chest tube':             ['pigtail','pig tail','small bore chest tube','pigtail tube'],
-    'Surgical chest tube':            ['surgical chest tube','large bore chest tube','chest tube','thoracostomy'],
-    'Tunneled pleural catheter':      ['tunneled pleural','pleurx','tpc','tunneled catheter'],
-    'Flexible bronchoscopy':          ['bronchoscopy','flexible bronch','bronch','fob'],
-    'BAL':                            ['bal','bronchoalveolar lavage','lavage'],
-    'Endobronchial biopsy':           ['endobronchial biopsy','eb biopsy','endobronchial'],
-    'Transbronchial biopsy':          ['transbronchial','tbx','tbb','transbronchial biopsy'],
-    'EBUS-TBNA':                      ['ebus','tbna','endobronchial ultrasound'],
-    'Paracentesis':                   ['paracentesis','para','abdominal tap'],
-    'Lumbar puncture':                ['lumbar puncture','lp','spinal tap'],
-    'Cardioversion':                  ['cardioversion','dccv','synchronized cardioversion'],
-    'Pericardiocentesis':             ['pericardiocentesis','pericardial tap','pericardial drain'],
-    'Transesophageal echocardiogram': ['transesophageal echo','tee','transesophageal echocardiogram'],
-    'Nasogastric tube':               ['nasogastric','ng tube','ngt','dobhoff'],
+    'Flexible bronchoscopy':              ['bronchoscopy','flexible bronch','bronch','fob'],
+    'Rigid bronchoscopy':                 ['rigid bronchoscopy','rigid bronch','rigid scope'],
+    'EBUS-TBNA':                          ['ebus','tbna','endobronchial ultrasound'],
+    'Radial EBUS':                        ['radial ebus','radial ultrasound'],
+    'Endobronchial biopsy':               ['endobronchial biopsy','eb biopsy'],
+    'Transbronchial biopsy':              ['transbronchial biopsy','tbb'],
+    'Forceps biopsy':                     ['forceps biopsy','forceps'],
+    'Brush biopsy':                       ['brush biopsy','bronchial brush'],
+    'Foreign body removal':               ['foreign body','foreign body removal'],
+    'Fiducial placement':                 ['fiducial','fiducial placement','marker placement'],
+    'Protected specimen brush':           ['protected specimen','psb'],
+    'Cryobiopsy':                         ['cryobiopsy','cryo biopsy','transbronchial cryo'],
+    'BAL':                                ['bal','bronchoalveolar lavage','lavage'],
+    'Robotic navigation':                 ['robotic bronchoscopy','robotic navigation','ion robot','monarch'],
+    'EM navigation':                      ['electromagnetic navigation','em navigation','emn'],
+    'Airway dilation':                    ['airway dilation','dilate airway'],
+    'Balloon bronchoplasty':              ['balloon bronchoplasty','balloon dilation'],
+    'Stent placement':                    ['stent placement','stent placed'],
+    'Stent removal':                      ['stent removal','remove stent'],
+    'Endobronchial valve':                ['endobronchial valve','bronchial valve','zephyr','valve'],
+    'Electrocautery':                     ['electrocautery','cautery'],
+    'APC':                                ['apc','argon plasma coagulation'],
+    'Laser therapy':                      ['laser therapy','nd-yag'],
+    'Cryotherapy':                        ['cryotherapy','cryo spray','cryo probe'],
+    'Bronchial thermoplasty':             ['thermoplasty','bronchial thermoplasty'],
+    'PDT':                                ['pdt','photodynamic therapy'],
+    'Tracheostomy':                       ['tracheostomy','perc trach','percutaneous trach','surgical trach'],
+    'Bronchoscopic intubation':           ['bronchoscopic intubation','fiber optic intubation','scope intubation'],
+    'Thoracentesis':                      ['thoracentesis','pleural tap'],
+    'Medical thoracoscopy':               ['medical thoracoscopy','thoracoscopy','pleuroscopy'],
+    'Chest tube placement':               ['chest tube','thoracostomy'],
+    'Tunneled pleural catheter':          ['tunneled pleural','pleurx','tpc'],
+    'Pleurodesis':                        ['pleurodesis','talc pleurodesis'],
+    'Pleural biopsy':                     ['pleural biopsy'],
+    'US-guided thoracentesis':            ['ultrasound guided thoracentesis','us guided thoracentesis'],
   };
   let matched = [];
   for (const [proc, keywords] of Object.entries(PROC_KEYWORDS)) {
@@ -1318,4 +1574,7 @@ function applyTranscript() {
     : 'no procedures matched';
   showToast('Applied: ' + summary + ' — review & save');
   window.scrollTo({ top: 0, behavior: 'smooth' });
-}>
+}
+</script>
+</body>
+</html>
