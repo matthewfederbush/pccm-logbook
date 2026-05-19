@@ -829,36 +829,52 @@ let gUserEmail = '';
 let gUserName = '';
 let tokenClient = null;
 
+let _gAuthInitTries = 0;
 function initGoogleAuth() {
   if (!window.google || !window.google.accounts) {
-    setTimeout(initGoogleAuth, 500); return;
+    _gAuthInitTries++;
+    if (_gAuthInitTries < 10) setTimeout(initGoogleAuth, 600 * _gAuthInitTries);
+    return;
   }
+
+  const savedEmail = localStorage.getItem('pccm_auth_email');
+  const cachedName = localStorage.getItem('pccm_auth_name');
+
+  // Always re-initialize tokenClient fresh on each page load
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
+    prompt: savedEmail ? 'none' : '',
+    login_hint: savedEmail || '',
     callback: (resp) => {
-      if (resp.error) {
-        // Silent refresh failed — show one-tap reconnect if we have cached identity
-        const cachedName = localStorage.getItem('pccm_auth_name');
-        if (cachedName) { gUserName = cachedName; gUserEmail = localStorage.getItem('pccm_auth_email')||''; updateAuthUI('paused'); }
+      if (resp.error === 'interaction_required' || resp.error === 'access_denied' || resp.error) {
+        // Silent refresh failed — show one-tap reconnect banner
+        if (cachedName) {
+          gUserName = cachedName;
+          gUserEmail = savedEmail || '';
+          updateAuthUI('paused');
+        } else {
+          updateAuthUI(false);
+        }
         return;
       }
       gAuthToken = resp.access_token;
       fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: 'Bearer ' + gAuthToken }
-      }).then(r=>r.json()).then(info => {
+      }).then(r => r.json()).then(info => {
         gUserEmail = info.email || '';
-        gUserName = info.name || info.email || 'Signed in';
-        if (gUserEmail) localStorage.setItem('pccm_auth_email', gUserEmail);
-        if (gUserName) localStorage.setItem('pccm_auth_name', gUserName);
+        gUserName  = info.name  || info.email || 'Signed in';
+        localStorage.setItem('pccm_auth_email', gUserEmail);
+        localStorage.setItem('pccm_auth_name',  gUserName);
         updateAuthUI(true);
       });
     }
   });
-  // Silent auto-sign-in if user previously consented
-  const savedEmail = localStorage.getItem('pccm_auth_email');
+
+  // Fire silent request immediately if we have a saved account
   if (savedEmail) {
-    tokenClient.requestAccessToken({ prompt: '', login_hint: savedEmail });
+    try { tokenClient.requestAccessToken(); }
+    catch(e) { if (cachedName) { gUserName = cachedName; gUserEmail = savedEmail; updateAuthUI('paused'); } }
   } else {
     updateAuthUI(false);
   }
@@ -872,12 +888,27 @@ function handleAuthBtn() {
     localStorage.removeItem('pccm_auth_email'); localStorage.removeItem('pccm_auth_name');
     updateAuthUI(false);
     showToast('Signed out');
-  } else if (gUserEmail) {
-    // Reconnect — silent with hint, no chooser popup
-    tokenClient.requestAccessToken({ prompt: '', login_hint: gUserEmail });
   } else {
-    // Fresh sign-in
-    tokenClient.requestAccessToken({ prompt: 'select_account' });
+    // Reconnect or fresh sign-in — re-init with full prompt to guarantee popup
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: SCOPES,
+      login_hint: gUserEmail || '',
+      callback: (resp) => {
+        if (resp.error) { showToast('Sign-in failed'); return; }
+        gAuthToken = resp.access_token;
+        fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: 'Bearer ' + gAuthToken }
+        }).then(r => r.json()).then(info => {
+          gUserEmail = info.email || '';
+          gUserName  = info.name  || info.email || 'Signed in';
+          localStorage.setItem('pccm_auth_email', gUserEmail);
+          localStorage.setItem('pccm_auth_name',  gUserName);
+          updateAuthUI(true);
+        });
+      }
+    });
+    tokenClient.requestAccessToken();
   }
 }
 
@@ -1020,7 +1051,7 @@ function gFetch(url, opts = {}) {
 }
 
 // Init auth when Google script loads
-window.addEventListener('load', () => setTimeout(initGoogleAuth, 800));
+window.addEventListener('load', () => setTimeout(initGoogleAuth, 1200));
 
 
 
