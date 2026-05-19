@@ -187,6 +187,7 @@ textarea{min-height:80px;resize:vertical;}
       <h1>PCCM Logbook</h1>
       <p>Fellowship procedure logging</p>
     </div>
+    <button onclick="repeatLastEncounter()" style="width:100%;background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:var(--r-full);padding:13px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px;">📋 Repeat last encounter</button>
 
     <div class="card">
       <div class="card-title">Encounter details</div>
@@ -942,6 +943,33 @@ function gFetch(url, opts = {}) {
 
 // Init auth when Google script loads
 window.addEventListener('load', () => setTimeout(initGoogleAuth, 800));
+
+
+
+
+// ─── REPEAT LAST ENCOUNTER (from log screen) ─────────────────────────────────
+function repeatLastEncounter() {
+  const active = encounters.filter(e => !e._superseded);
+  if (!active.length) { showToast('No previous encounter to repeat'); return; }
+  const enc = [...active].sort((a,b) => new Date(b.loggedAt) - new Date(a.loggedAt))[0];
+
+  document.getElementById('date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('initials').value = enc.initials || '';
+  document.getElementById('mrn').value = '';
+  document.getElementById('attending').value = enc.attending || '';
+  document.getElementById('location').value = enc.location || '';
+  document.getElementById('role').value = enc.role || '';
+  document.getElementById('outcome').value = enc.outcome || '';
+  document.getElementById('indication').value = enc.indication || '';
+  document.getElementById('complications').value = '';
+  document.getElementById('notes').value = '';
+
+  currentProcedures = (enc.procedures || []).map(p => ({ ...p }));
+  renderProcedures();
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('📋 Repeated — enter new MRN & review');
+}
 
 </script>
 </body>
