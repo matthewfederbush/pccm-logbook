@@ -168,6 +168,15 @@ textarea{min-height:80px;resize:vertical;}
 .sync-dot.err{background:var(--error);}
 .icon-btn{width:38px;height:38px;border-radius:var(--r-full);border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;color:var(--text);}
 .icon-btn:active{background:var(--surface3);}
+.mic-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:13px;border-radius:var(--r-full);border:1.5px solid var(--primary);background:var(--primary-tint);color:var(--primary);font-size:14px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all 0.15s;margin-bottom:8px;}
+.mic-btn:active{background:var(--primary);color:#fff;}
+.mic-btn.listening{background:var(--primary);color:#fff;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.7;}}
+.voice-panel{display:none;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:8px;}
+.voice-panel.show{display:block;}
+.voice-transcript{font-size:14px;color:var(--text);line-height:1.5;min-height:48px;margin-bottom:12px;}
+.voice-hint{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.voice-actions{display:flex;gap:8px;}
 </style>
 </head>
 <body>
@@ -197,6 +206,18 @@ textarea{min-height:80px;resize:vertical;}
     </div>
 
     <button onclick="repeatLastEncounter()" style="width:100%;background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:var(--r-full);padding:13px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px;">📋 Repeat last encounter</button>
+    <button class="mic-btn" id="micBtn" onclick="toggleVoice()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      🎤 Tap to dictate encounter
+    </button>
+    <div class="voice-panel" id="voicePanel">
+      <div class="voice-hint">Speak naturally — e.g. <em>"Thoracentesis, bedside ICU, Dr. Kalchiem-Dekel, performed with supervision, successful, large pleural effusion"</em></div>
+      <div class="voice-transcript" id="voiceTranscript">Listening…</div>
+      <div class="voice-actions">
+        <button class="btn btn-primary btn-sm" onclick="applyTranscript()">✓ Apply to form</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearVoice()">✕ Clear</button>
+      </div>
+    </div>
 
     <div class="card" style="padding:14px 14px 12px;">
       <div class="card-title" style="margin-bottom:10px;">Patient &amp; Encounter</div>
@@ -1013,6 +1034,173 @@ function updateThemeBtn(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   document.addEventListener('DOMContentLoaded', () => updateThemeBtn(theme));
 })();
+
+
+
+// ─── VOICE DICTATION ─────────────────────────────────────────────────────────
+let recognition = null;
+let isListening = false;
+let fullTranscript = '';
+
+function initRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showToast('Voice not supported on this browser');
+    return null;
+  }
+  const r = new SpeechRecognition();
+  r.continuous = true;
+  r.interimResults = true;
+  r.lang = 'en-US';
+
+  r.onresult = (e) => {
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    if (final) fullTranscript += final + ' ';
+    document.getElementById('voiceTranscript').textContent =
+      (fullTranscript + interim).trim() || 'Listening…';
+  };
+
+  r.onerror = (e) => {
+    showToast('Mic error: ' + e.error);
+    stopListening();
+  };
+
+  r.onend = () => {
+    if (isListening) r.start(); // keep going until user stops
+  };
+
+  return r;
+}
+
+function toggleVoice() {
+  if (isListening) {
+    stopListening();
+  } else {
+    startListening();
+  }
+}
+
+function startListening() {
+  recognition = initRecognition();
+  if (!recognition) return;
+  fullTranscript = '';
+  document.getElementById('voiceTranscript').textContent = 'Listening…';
+  document.getElementById('voicePanel').classList.add('show');
+  document.getElementById('micBtn').classList.add('listening');
+  document.getElementById('micBtn').innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    ⏹ Stop recording`;
+  isListening = true;
+  recognition.start();
+}
+
+function stopListening() {
+  isListening = false;
+  if (recognition) recognition.stop();
+  document.getElementById('micBtn').classList.remove('listening');
+  document.getElementById('micBtn').innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    🎤 Tap to dictate encounter`;
+  if (fullTranscript.trim()) {
+    showToast('Done — review & tap Apply');
+  }
+}
+
+function clearVoice() {
+  fullTranscript = '';
+  document.getElementById('voiceTranscript').textContent = 'Listening…';
+  document.getElementById('voicePanel').classList.remove('show');
+  stopListening();
+}
+
+// Smart field-filling from transcript
+function applyTranscript() {
+  const text = fullTranscript.trim().toLowerCase();
+  if (!text) { showToast('Nothing to apply'); return; }
+
+  // ── Procedures: match against known procedure names ──
+  const allProcs = Array.from(document.querySelectorAll('.proc-card'));
+  let matched = [];
+  allProcs.forEach(card => {
+    const name = card.dataset.proc?.toLowerCase() || '';
+    const words = name.split(/\s+/);
+    const hit = words.some(w => w.length > 3 && text.includes(w)) ||
+                text.includes(name);
+    if (hit) {
+      matched.push(card.dataset.proc);
+      card.click();
+    }
+  });
+
+  // ── Attending: fuzzy match last name ──
+  const attendingSelect = document.getElementById('encAttending');
+  const options = Array.from(attendingSelect.options);
+  options.forEach(opt => {
+    const lastName = opt.value.split(' ').pop().toLowerCase();
+    if (lastName.length > 3 && text.includes(lastName)) {
+      attendingSelect.value = opt.value;
+    }
+  });
+
+  // ── Location keywords ──
+  const locSelect = document.getElementById('encLocation');
+  if (text.includes('icu') || text.includes('bedside')) locSelect.value = 'Bedside/ICU';
+  else if (text.includes('bronchoscopy suite') || text.includes('bronch suite')) locSelect.value = 'Bronchoscopy suite';
+  else if (text.includes('procedure room') || text.includes('micu procedure')) locSelect.value = 'MICU procedure room';
+  else if (text.includes(' or ') || text.includes('operating room')) locSelect.value = 'OR';
+  else if (text.includes('floor') || text.includes('stepdown')) locSelect.value = 'Stepdown/floor';
+  else if (text.includes(' ed ') || text.includes('emergency')) locSelect.value = 'ED';
+
+  // ── Role keywords ──
+  const roleSelect = document.getElementById('encRole');
+  if (roleSelect) {
+    if (text.includes('independent') || text.includes('independently')) roleSelect.value = 'Performed independently';
+    else if (text.includes('supervision') || text.includes('supervised')) roleSelect.value = 'Performed with supervision';
+    else if (text.includes('assist')) roleSelect.value = 'Assisted';
+    else if (text.includes('observ')) roleSelect.value = 'Observed';
+  }
+
+  // ── Outcome keywords ──
+  const outcomeSelect = document.getElementById('encOutcome');
+  if (outcomeSelect) {
+    if (text.includes('unsuccessful') || text.includes('failed') || text.includes('failure')) outcomeSelect.value = 'Unsuccessful';
+    else if (text.includes('partial')) outcomeSelect.value = 'Partially successful';
+    else if (text.includes('abandon')) outcomeSelect.value = 'Abandoned';
+    else if (text.includes('success')) outcomeSelect.value = 'Successful';
+  }
+
+  // ── Indication: grab text after "indication" or "for" ──
+  const indicationField = document.getElementById('encIndication');
+  if (indicationField) {
+    const indMatch = text.match(/(?:indication(?:s)?(?:\s+(?:was|were|is))?\s+)([\w\s,]+?)(?:\.|,|complication|note|$)/);
+    if (indMatch) indicationField.value = indMatch[1].trim();
+  }
+
+  // ── Complications ──
+  const compField = document.getElementById('encComplications');
+  if (compField) {
+    if (text.includes('no complication') || text.includes('uncomplicated')) {
+      compField.value = 'None';
+    } else {
+      const compMatch = text.match(/complication(?:s)?(?:\s+(?:included?|was|were))?\s+([\w\s,]+?)(?:\.|$)/);
+      if (compMatch) compField.value = compMatch[1].trim();
+    }
+  }
+
+  document.getElementById('voicePanel').classList.remove('show');
+  stopListening();
+
+  const summary = matched.length
+    ? matched.slice(0,2).join(', ') + (matched.length > 2 ? ` +${matched.length-2}` : '')
+    : 'no procedures matched';
+  showToast(`Applied: ${summary} — review & save`);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 </script>
 </body>
