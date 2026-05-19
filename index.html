@@ -158,6 +158,9 @@ textarea{min-height:80px;resize:vertical;}
 /* AUTH */
 .auth-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--primary-tint);border:1.5px solid rgba(13,124,134,.25);border-radius:var(--r-lg);padding:12px 14px;margin-bottom:16px;}
 .auth-banner.signed-in{background:var(--surface2);border-color:rgba(67,160,50,.4);}
+.paused{background:rgba(200,130,0,0.1);border-color:rgba(200,130,0,0.4);}
+.paused .auth-info{color:#c87800;}
+.paused .auth-btn{background:transparent;border-color:#c87800;color:#c87800;}
 .auth-info{font-size:13px;font-weight:600;}
 .auth-sub{font-size:12px;color:var(--muted);margin-top:2px;}
 .auth-btn{padding:9px 16px;border-radius:var(--r-full);font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid var(--primary);background:var(--primary);color:#fff;white-space:nowrap;}
@@ -809,10 +812,10 @@ attList.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.text
 settingsAttEl.value = settings.defaultAttending||'';
 // Apply default attending to form
 if(settings.defaultAttending) document.getElementById('encAttending').value = settings.defaultAttending;
-// Restore cached auth display
+// Restore cached auth display while silent refresh runs
 const _cachedName = localStorage.getItem('pccm_auth_name');
 const _cachedEmail = localStorage.getItem('pccm_auth_email');
-if (_cachedName && _cachedEmail) { gUserName = _cachedName; gUserEmail = _cachedEmail; updateAuthUI(true); }
+if (_cachedName && _cachedEmail) { gUserName = _cachedName; gUserEmail = _cachedEmail; updateAuthUI('paused'); }
 renderProcedures(); renderSelected(); renderHero(); renderLog();
 
 
@@ -834,9 +837,13 @@ function initGoogleAuth() {
     client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
     callback: (resp) => {
-      if (resp.error) { return; }
+      if (resp.error) {
+        // Silent refresh failed — show one-tap reconnect if we have cached identity
+        const cachedName = localStorage.getItem('pccm_auth_name');
+        if (cachedName) { gUserName = cachedName; gUserEmail = localStorage.getItem('pccm_auth_email')||''; updateAuthUI('paused'); }
+        return;
+      }
       gAuthToken = resp.access_token;
-      // Cache email for silent re-auth
       fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: 'Bearer ' + gAuthToken }
       }).then(r=>r.json()).then(info => {
@@ -851,24 +858,31 @@ function initGoogleAuth() {
   // Silent auto-sign-in if user previously consented
   const savedEmail = localStorage.getItem('pccm_auth_email');
   if (savedEmail) {
-    // Attempt silent token refresh (no UI prompt)
     tokenClient.requestAccessToken({ prompt: '', login_hint: savedEmail });
+  } else {
+    updateAuthUI(false);
   }
 }
 
 function handleAuthBtn() {
   if (gAuthToken) {
-    // Sign out
+    // Sign out fully
     google.accounts.oauth2.revoke(gAuthToken, () => {});
-    gAuthToken = null; gUserEmail = ''; gUserName = ''; localStorage.removeItem('pccm_auth_email'); localStorage.removeItem('pccm_auth_name');
+    gAuthToken = null; gUserEmail = ''; gUserName = '';
+    localStorage.removeItem('pccm_auth_email'); localStorage.removeItem('pccm_auth_name');
     updateAuthUI(false);
     showToast('Signed out');
+  } else if (gUserEmail) {
+    // Reconnect — silent with hint, no chooser popup
+    tokenClient.requestAccessToken({ prompt: '', login_hint: gUserEmail });
   } else {
-    tokenClient.requestAccessToken();
+    // Fresh sign-in
+    tokenClient.requestAccessToken({ prompt: 'select_account' });
   }
 }
 
-function updateAuthUI(signedIn) {
+function updateAuthUI(state) {
+  // state: true (signed in) | false (signed out) | 'paused' (token expired, needs 1-tap)
   const banner = document.getElementById('authBanner');
   const info = document.getElementById('authInfo');
   const btn = document.getElementById('authBtn');
@@ -876,7 +890,14 @@ function updateAuthUI(signedIn) {
   const sInfo = document.getElementById('settingsAuthInfo');
   const sSub = document.getElementById('settingsAuthSub');
   const sBtn = document.getElementById('settingsAuthBtn');
-  if (signedIn) {
+
+  // Clear all states
+  banner.classList.remove('signed-in','paused');
+  sBanner.classList.remove('signed-in','paused');
+  btn.classList.remove('sign-out');
+  sBtn.classList.remove('sign-out');
+
+  if (state === true) {
     banner.classList.add('signed-in');
     info.textContent = '✓ ' + gUserName;
     btn.textContent = 'Sign out'; btn.classList.add('sign-out');
@@ -884,14 +905,20 @@ function updateAuthUI(signedIn) {
     sInfo.textContent = '✓ ' + gUserName + ' (' + gUserEmail + ')';
     sSub.textContent = 'Data syncs to your Google Drive automatically';
     sBtn.textContent = 'Sign out'; sBtn.classList.add('sign-out');
+  } else if (state === 'paused') {
+    banner.classList.add('paused');
+    info.textContent = '⚠ Sync paused — tap to reconnect';
+    btn.textContent = 'Reconnect';
+    sBanner.classList.add('paused');
+    sInfo.textContent = '⚠ Sync paused';
+    sSub.textContent = 'Tap Reconnect to restore Google sync (no password needed)';
+    sBtn.textContent = 'Reconnect';
   } else {
-    banner.classList.remove('signed-in');
     info.textContent = 'Not signed in';
-    btn.textContent = 'Sign in with Google'; btn.classList.remove('sign-out');
-    sBanner.classList.remove('signed-in');
+    btn.textContent = 'Sign in with Google';
     sInfo.textContent = 'Not signed in';
     sSub.textContent = 'Sign in to enable automatic sync to your own Google Drive';
-    sBtn.textContent = 'Sign in'; sBtn.classList.remove('sign-out');
+    sBtn.textContent = 'Sign in';
   }
 }
 
